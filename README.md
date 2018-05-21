@@ -1,6 +1,6 @@
 # Ancillary-Imaging-Acquisition
 
-A selection of Python scripts for acquiring and standardised imaging data from a wide range of telescopes. Used to assemble ancillary data for the DustPedia (Clark et al., 2017), JINGLE (Saintonge et al., submitted), and NESS projects. If you use these scripts, please site Clark et al. (2017), which describes their operation in some detail.
+A selection of Python scripts for acquiring and standardised imaging data from a wide range of telescopes. Used to assemble ancillary data for the DustPedia (Clark et al., 2018), JINGLE (Saintonge et al., submitted), and NESS projects. If you use these scripts, please cite Clark et al. (2018), which describes their operation in some detail.
 
 They require a number of Python packages to be installed in order to work (including my ChrisFuncs package of convenience functions, available at https://github.com/Stargrazer82301/ChrisFuncs). Many of the scripts need Montage (http://montage.ipac.caltech.edu/), and some use SWarp (https://www.astromatic.net/software/swarp).
 
