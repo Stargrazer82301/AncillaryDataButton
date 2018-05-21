@@ -37,14 +37,14 @@ wavelengths = ['152.8','227.1']
 zero_points = [18.82, 20.08]
 
 # Read in source catalogue
-jingle_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+jingle_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
 name_list = jingle_cat['name']
 ra_list = jingle_cat['ra']
 dec_list = jingle_cat['dec']
 
 # Give paths
-in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/GALEX/Mosaics/'
-out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/GALEX/Cutouts/'
+in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/GALEX/Mosaics/'
+out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/GALEX/Cutouts/'
 
 # Initiate timing
 time_list = [ time.time() ]
@@ -139,41 +139,3 @@ for i in range(0, name_list.shape[0]):#np.where(name_list=='NGC5584')[0]:
 
 # Jubilate
 print 'All done!'
-
-
-
-
-
-"""
-# Define median filter function
-def clip_filter(image_in, kernel):
-    image_ds = downsample(image_in, 5)
-    mirror = mirror_grid(image_ds)
-    kernel = np.int( np.round( ( np.float(kernel) / 10.0 ) ) )
-    kernel = np.int( np.round(2.0*kernel) ) - np.int( np.abs( np.mod( np.round(2.0*kernel), 2.0 ) - 1.0 ) )
-    image_out = np.zeros([image_ds.shape[0], image_ds.shape[1]])
-    for i in range(0, image_ds.shape[0]):
-        print 'Row '+str(i+1)+' of '+str(image_ds.shape[0])
-        for j in range(0, image_ds.shape[1]):
-            image_out[i,j] = slicing_clip(image_ds, mirror, kernel, i, j)[0]
-    image_out = congrid.congrid(image_out, [image_in.shape[0],image_in.shape[1]], minusone=True)
-    return image_out
-"""
-
-"""
-# Define median filter function
-def clip_filter(image_in, kernel):
-    image_ds = downsample(image_in, 5)
-    mirror = mirror_grid(image_ds)
-    kernel = np.int( np.round( ( np.float(kernel) / 10.0 ) ) )
-    kernel = np.int( np.round(2.0*kernel) ) - np.int( np.abs( np.mod( np.round(2.0*kernel), 2.0 ) - 1.0 ) )
-    list_out = [ [ np.nan ]*image_ds.shape[1] ]*image_ds.shape[0]
-    pool = mp.Pool(processes=50)
-    for i in range(0, image_ds.shape[0]):
-        for j in range(0, image_ds.shape[1]):
-            list_out[i][j] = pool.apply_async( slicing_clip, args=(image_ds, mirror, kernel, i, j,) )
-    pool.close()
-    pool.join()
-    pdb.set_trace()
-    return list_out
-"""

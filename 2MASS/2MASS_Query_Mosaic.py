@@ -66,11 +66,11 @@ def Montage_2MASS(name, ra, dec, pix_width, map_width, band, input_dir, out_dir)
 if __name__ == "__main__":
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/2MASS/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/2MASS/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/2MASS/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/2MASS/Mosaics/'
 
     # Read in source catalogue
-    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = NESS_cat['name']
 
     # State bands of interest
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     os.mkdir(in_dir)
 
     # Read in list of already-processed sources, and identify sources not yet processed
-    already_file = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/2MASS/2MASS_Already_Processed_List.dat'
+    already_file = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/2MASS/2MASS_Already_Processed_List.dat'
     if not os.path.exists(already_file):
         open(already_file,'a')
     alrady_processed = np.genfromtxt(already_file, dtype=('S50')).tolist()

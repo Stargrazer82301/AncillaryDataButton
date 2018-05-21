@@ -143,15 +143,15 @@ if __name__ == "__main__":
                   'Planck857':{'band_name':'Planck 857','freq':'857GHz','wavelength':'350','beam_area':23.985,'units':'MJy/sr','instrument':'HFI'}}
 
     # Read in source catalogue
-    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     ness_cat = ness_cat[::-1]
     name_list = ness_cat['name']
     ra_list = ness_cat['ra']
     dec_list = ness_cat['dec']
 
     # Give paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Planck/Raw/'
-    our_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Planck/Cutouts/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Planck/Raw/'
+    our_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Planck/Cutouts/'
 
     # Record time taken
     time_list = [time.time()]

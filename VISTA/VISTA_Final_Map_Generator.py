@@ -37,14 +37,14 @@ bands = ['Z','Y','J','H','Ks']
 wavelengths = ['0.878','1.021','1.254','1.646','2.149']
 
 # Read in source catalogue
-ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
 name_list = ness_cat['name']
 ra_list = ness_cat['ra']
 dec_list = ness_cat['dec']
 
 # Give paths
-in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/VISTA/Mosaics/'
-out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/VISTA/Cutouts/'
+in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/VISTA/Mosaics/'
+out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/VISTA/Cutouts/'
 
 # Record time taken
 time_total = 0.0

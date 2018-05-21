@@ -76,18 +76,18 @@ def Herschel_SWarp_NaN(target):
 if __name__  ==  "__main__":
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Herschel/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Herschel/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Herschel/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Herschel/Mosaics/'
 
     # Read in source catalogue
-    ness_cat = np.genfromtxt(os.path.join(dropbox,'Work/Tables/NESS/NESS_Test_Sample.csv'), delimiter=',', names=True, dtype=None)
+    ness_cat = np.genfromtxt(os.path.join(dropbox,'Work/Tables/NESS/NESS_Sample.csv'), delimiter=',', names=True, dtype=None)
     name_list = ness_cat['name']
 
     # State desired map width (in degrees)
     width = 0.5
 
     # Read in list of already-Montaged sources
-    already_file = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Herschel/Herschel_Already_Processed_List.dat'
+    already_file = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Herschel/Herschel_Already_Processed_List.dat'
     if not os.path.exists(already_file):
         open(already_file,'a')
     already_processed = np.genfromtxt(already_file, dtype=('S50')).tolist()
@@ -123,7 +123,7 @@ if __name__  ==  "__main__":
 
 
     # Loop over each source
-    for i in range(0, ness_cat.shape[0]):#np.where(name_list == 'NGC0300')[0]:
+    for i in np.random.permutation(range(0, ness_cat.shape[0])):
         name = name_list[i].replace(' ','_')
         ra = ra_list[i]
         dec = dec_list[i]
@@ -206,42 +206,44 @@ if __name__  ==  "__main__":
 
         # Loop over bands, and downloaded files (skipping folders), to move files to band-specific directories
         for band in bands_dict.keys():
-            for list_file in os.listdir(os.path.join(gal_dir,'Raw')):
-                if '.fits' not in list_file:
+            for listfile in os.listdir(os.path.join(gal_dir,'Raw')):
+                if '.fits' not in listfile:
                     continue
-                list_hdr = astropy.io.fits.getheader( os.path.join(gal_dir,'Raw',list_file), ext=0 )
+                list_hdr = astropy.io.fits.getheader( os.path.join(gal_dir,'Raw',listfile), ext=0 )
                 if list_hdr['INSTRUME'] == bands_dict[band]['instrument']:
                     if list_hdr[bands_dict[band]['hdr_inst_card_kwrd']] == bands_dict[band]['hdr_inst_card_entry']:
-                        shutil.copy2(os.path.join(gal_dir,'Raw',list_file), os.path.join(gal_dir,'Raw',band))
-                        os.remove(os.path.join(gal_dir,'Raw',list_file))
+                        shutil.copy2(os.path.join(gal_dir,'Raw',listfile), os.path.join(gal_dir,'Raw',band))
+                        os.remove(os.path.join(gal_dir,'Raw',listfile))
 
         # Loop over PACS bands and files to delete dud PACS calibration(?) maps
         for band in bands_dict.keys():
             if bands_dict[band]['instrument'] == 'PACS':
-                for list_file in os.listdir(os.path.join(gal_dir,'Raw',band)):
-                    if astropy.io.fits.getheader( os.path.join(gal_dir,'Raw',band,list_file), ext=0 )['OBSERVER'][-4:].lower() == 'pacs':
-                        os.remove(os.path.join(gal_dir,'Raw',band,list_file))
+                for listfile in os.listdir(os.path.join(gal_dir,'Raw',band)):
+                    if astropy.io.fits.getheader( os.path.join(gal_dir,'Raw',band,listfile), ext=0 )['OBSERVER'][-4:].lower() == 'pacs':
+                        os.remove(os.path.join(gal_dir,'Raw',band,listfile))
 
         # Loop over each band's files, to save image map to separate FITS files
         for band in bands_dict.keys():
-            for list_file in os.listdir(os.path.join(gal_dir,'Raw',band)):
-                img_map, img_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,list_file), header=True, extname='image')
+            for listfile in os.listdir(os.path.join(gal_dir,'Raw',band)):
+                img_map, img_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='image')
 
                 # Record which image pixels are zeros, and convert to NaNs
                 where_zero = np.where(img_map==0)
                 img_map[where_zero] = np.NaN
-                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,list_file.replace('.fits','_Img.fits')), img_map, header=img_header)
+                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Img.fits')), img_map, header=img_header)
 
                 # Now save coverage and error maps to separate files, with zeros similarly converted to NaNs
-                cov_map, cov_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,list_file), header=True, extname='coverage')
+                cov_map, cov_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='coverage')
                 cov_map[where_zero] = np.NaN
-                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,list_file.replace('.fits','_Cov.fits')), cov_map, header=cov_header)
-                err_map, err_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,list_file), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
+                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Cov.fits')), cov_map, header=cov_header)
+                err_map, err_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
                 err_map[where_zero] = np.NaN
-                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,list_file.replace('.fits','_Error.fits')), img_map, header=err_header)
+                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Error.fits')), img_map, header=err_header)
 
         # Loop over each band for coaddition
         for band in bands_dict.keys():
+            if not os.path.exists(os.path.join(gal_dir,'Raw',band)):
+                continue
             if len(os.path.join(gal_dir,'Raw',band)) == 0:
                 continue
             print 'Commencing Montaging and SWarping of '+name+'_Herschel_'+band
@@ -281,13 +283,13 @@ if __name__  ==  "__main__":
                 continue
 
             # Move reprojcted maps to relevant locations
-            for list_file in os.listdir(os.path.join(gal_dir,'Raw',band)):
-                if '_Img.fits' in os.path.join(gal_dir,'Raw',band,list_file):
-                    shutil.move(os.path.join(gal_dir,'Raw',band,list_file), os.path.join(gal_dir,'Raw',band,'Img_Maps'))
-                elif '_Cov.fits' in os.path.join(gal_dir,'Raw',band,list_file):
-                    shutil.move(os.path.join(gal_dir,'Raw',band,list_file), os.path.join(gal_dir,'Raw',band,'Cov_Maps'))
-                elif '_Error.fits' in os.path.join(gal_dir,'Raw',band,list_file):
-                    shutil.move(os.path.join(gal_dir,'Raw',band,list_file), os.path.join(gal_dir,'Raw',band,'Err_Maps'))
+            for listfile in os.listdir(os.path.join(gal_dir,'Raw',band)):
+                if '_Img.fits' in os.path.join(gal_dir,'Raw',band,listfile):
+                    shutil.move(os.path.join(gal_dir,'Raw',band,listfile), os.path.join(gal_dir,'Raw',band,'Img_Maps'))
+                elif '_Cov.fits' in os.path.join(gal_dir,'Raw',band,listfile):
+                    shutil.move(os.path.join(gal_dir,'Raw',band,listfile), os.path.join(gal_dir,'Raw',band,'Cov_Maps'))
+                elif '_Error.fits' in os.path.join(gal_dir,'Raw',band,listfile):
+                    shutil.move(os.path.join(gal_dir,'Raw',band,listfile), os.path.join(gal_dir,'Raw',band,'Err_Maps'))
 
 
 
@@ -297,9 +299,9 @@ if __name__  ==  "__main__":
                 if '_Img.fits' in listfile:
                     mosaic_count += 1
             if mosaic_count == 1:
-                for listfile in os.listdir(gal_dir+band):
+                for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'Img_Maps')):
                     if '.fits' in listfile:
-                        shutil.move(listfile, gal_dir+band+'/SWarp_Temp')
+                        shutil.move(os.path.join(gal_dir,'Raw',band,'Img_Maps',listfile) , os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
             if mosaic_count>1:
 
                 # Use Montage wrapper to determine appropriate corrections for background matching
@@ -341,19 +343,20 @@ if __name__  ==  "__main__":
                             break
 
                     # Handle timeouts and other failures
-                    if mBgExec_fail_count>0:
+                    if mBgExec_fail_count>5:
                         print 'Background matching with Montage has failed '+str(mBgExec_fail_count)+' time(s); reattempting'
                     if mBgExec_fail == True and mBgExec_success == False and mBgExec_fail_count>=3:
                         mBgExec_uberfail = True
-                        print 'Background matching with Montage has failed 3 times; proceeding directly to co-additon'
+                        print 'Background matching with Montage has failed 5 times; proceeding directly to co-additon'
                         try:
                             os.killpg( os.getpgid(mBgExec_sp.pid), 15 )
                         except:
                             'Background matching subprocess appears to have imploded; no task to kill'
-                        for listfile in os.listdir(os.path.join(gal_dir,'Raw',band)):
-                            if '_HSA.fits' in listfile:
-                                shutil.move(listfile, os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
                         break
+            if mBgExec_uberfail:
+                for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'Img_Maps')):
+                    if '_HSA_Img.fits' in listfile:
+                        shutil.move(listfile, os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
 
 
 
@@ -366,18 +369,31 @@ if __name__  ==  "__main__":
                     astropy.io.fits.writeto( os.path.join(gal_dir,'Raw',band,'SWarp_Temp',listfile.replace('_Cov.fits','_Wgt.fits')), wgt_image, header=wgt_header )
 
             # Sort out daft filename differences between image maps and error maps
-            for list_file in os.listdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp')):
-                os.rename( os.path.join(gal_dir,'Raw',band,'SWarp_Temp',list_file), os.path.join(gal_dir,'Raw',band,'SWarp_Temp',list_file.replace('_Img.fits','.fits')) )
+            for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp')):
+                os.rename( os.path.join(gal_dir,'Raw',band,'SWarp_Temp',listfile), os.path.join(gal_dir,'Raw',band,'SWarp_Temp',listfile.replace('_Img.fits','.fits')) )
             """
             # Perform least-squares plane fitting to match image levels
             ChrisFuncs.Coadd.LevelFITS(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'), 'Img.fits', convfile_dir=False)
             """
-
             # Use SWarp to co-add images weighted by their coverage maps
             print 'Co-adding '+name+'_Herschel_'+band+' maps'
             os.chdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
             os.system('swarp *HSA.fits -IMAGEOUT_NAME '+name+'_Herschel_'+band+'_SWarp.fits -WEIGHT_SUFFIX _Wgt.fits -WEIGHT_TYPE MAP_RMS -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -GAIN_KEYWORD DIESPIZERDIE -RESCALE_WEIGHTS N -SUBTRACT_BACK N -RESAMPLE N -VMEM_MAX 4095 -MEM_MAX 4096 -WEIGHT_TYPE MAP_WEIGHT -NTHREADS 4 -VERBOSE_TYPE QUIET')
             Herschel_SWarp_NaN(name+'_Herschel_'+band+'_SWarp.fits')
+
+            # Check that the final maps provides actual coverage of the point in question
+            coadd_image, coadd_header = astropy.io.fits.getdata(os.path.join(gal_dir,'Raw',band,'SWarp_Temp',name+'_Herschel_'+band+'_SWarp.fits'), header=True)
+            coadd_wcs = astropy.wcs.WCS(coadd_header)
+            coords_xy = np.round(coadd_wcs.all_world2pix(np.array([[ra, dec]]), 0)).astype(int)
+            coord_i, coord_j = coords_xy[0,1], coords_xy[0,0]
+            if np.isnan(np.nanmax(coadd_image[coord_i-2:coord_i+2+1, coord_j-2:coord_j+2+2])):
+                print('No Herschel coverage for '+name+' at '+band)
+                alrady_processed_file = open(already_file, 'a')
+                alrady_processed_file.write(name+'\n')
+                alrady_processed_file.close()
+                shutil.rmtree( os.path.join( in_dir, name ) )
+                time_list.append(time.time())
+                continue
 
             # Re-project finalised image map using Montage
             montage_wrapper.wrappers.reproject(os.path.join(gal_dir,'Raw',band,'SWarp_Temp',name+'_Herschel_'+band+'_SWarp.fits'), os.path.join(out_dir,name+'_Herschel_'+band+'.fits'), header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), exact_size=True)
@@ -421,15 +437,13 @@ if __name__  ==  "__main__":
             err_image[ np.where(err_image == np.inf) ] = np.NaN
             astropy.io.fits.writeto(os.path.join(out_dir,name+'_Herschel_'+band+'_Error.fits'), err_image, header=err_header, clobber=True)
 
+
+
             # Compress finalised exposure time map
             os.chdir(out_dir)
             os.system('gzip '+os.path.join(gal_dir,'Raw',band,name+'_Herschel_'+band+'_Error.fits'))
             print 'Completed Montaging and SWarping '+name+'_Herschel_'+band+' image map'
             print 'Completed Montaging '+name+'_Herschel_'+band+' error map'
-
-            # Check that the final maps provides actual coverage of the point in question
-            for band in bands_dict.keys():
-                print('Do this!')
 
 
 
@@ -439,9 +453,14 @@ if __name__  ==  "__main__":
         already_processed_file.close()
 
         # Clean memory, and return timings
-        shutil.rmtree(gal_dir)
+        if os.path.exists(gal_dir):
+            shutil.rmtree(gal_dir)
+        gc.collect()
         time_list.append( time.time() )
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
+        time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
+        time_file.write(time_est)
+        time_file.close()
         print 'Estimated completion time: '+time_est
 
 # Jubilate

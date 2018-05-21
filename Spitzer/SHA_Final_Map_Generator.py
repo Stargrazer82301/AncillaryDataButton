@@ -164,7 +164,7 @@ if __name__ == "__main__":
     thumbnails = False
 
     # Decide what intrument to work for
-    instrument = 'IRAC'
+    instrument = 'MIPS'
 
     # State band information
     if instrument=='IRAC':
@@ -178,14 +178,14 @@ if __name__ == "__main__":
                       '160um':{'instrument':'MIPS','band_short':'160','band_long':'MIPS 3','wavelength':'160um','pix_size':8.0,'colourmap':'gist_heat'}}
 
     # Read in source catalogue
-    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = ness_cat['name']
     ra_list = ness_cat['ra']
     dec_list = ness_cat['dec']
 
     # Give paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Mosaics_'+instrument+'/'
-    our_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Cutouts/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Mosaics_'+instrument+'/'
+    our_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Cutouts/'
 
     # Record time taken
     time_total = 0.0

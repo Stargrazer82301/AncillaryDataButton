@@ -7,6 +7,7 @@ if location == 'saruman':
 # Import smorgasbord
 import os
 import sys
+sys.path.append(dropbox+'Work/Scripts')
 import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
@@ -31,34 +32,40 @@ plt.ioff()
 thumbnails = False
 
 # Provide band-specific information
-bands = ['J','H','Ks']
-wavelengths = ['1.25', '1.65', '2.16']
+bands = ['Z','Y','J','H','K']
+wavelengths = ['0.8817', '1.0305', '1.2483', '1.6313', '2.2010']
 
 # Read in source catalogue
-NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
-name_list = NESS_cat['name']
-ra_list = NESS_cat['ra']
-dec_list = NESS_cat['dec']
+dustpedia_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
+name_list = dustpedia_cat['name']
+ra_list = dustpedia_cat['ra']
+dec_list = dustpedia_cat['dec']
 
 # Give paths
-in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/2MASS/Mosaics/'
-out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/2MASS/Cutouts/'
+in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/UKIDSS/Mosaics/'
+out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/UKIDSS/Cutouts/'
 
-# Initiate timing
+# Record time taken
+time_total = 0.0
+source_counter = 0.0
+source_total = name_list.shape[0]
 time_list = [ time.time() ]
 
 # Loop over each source
 for i in range(0, name_list.shape[0]):
-    name = name_list[i].replace(' ','_')
+    source_counter += 1.0
+    name = name_list[i]
     ra = ra_list[i]
     dec = dec_list[i]
+    name.replace('[','')
+    name.replace(']','')
 
-    # Check if 2MASS data present
+    # Check if UKIDSS data present
     nomap = 0
     for band in bands:
-        if not os.path.exists(in_dir+str(name)+'_2MASS_'+str(band.replace('Ks','K'))+'.fits'):
+        if not os.path.exists(in_dir+str(name)+'_UKIDSS_'+str(band)+'.fits'):
             nomap += 1
-    if nomap==3:
+    if nomap==5:
         continue
     time_start = time.time()
 
@@ -69,20 +76,20 @@ for i in range(0, name_list.shape[0]):
         wavelength = wavelengths[b]
 
         # Check if data has already been processed; if so, skip
-        if os.path.exists( os.path.join(out_dir, name+'_2MASS_'+band+'.fits' ) ):
-            print 'Map for '+name+'_2MASS_'+band+'.fits already processed'
+        if os.path.exists( os.path.join(out_dir, name+'_UKIDSS_'+band+'.fits' ) ):
+            print 'Map for '+name+'_UKIDSS_'+band+'.fits already processed'
             continue
 
         # Check if input data exists exists; if not, skip
-        if not os.path.exists( os.path.join( in_dir, name+'_2MASS_'+band.replace('Ks','K')+'.fits' ) ):
-            print 'No data for '+name+'_2MASS_'+band+'.fits'
+        if not os.path.exists( os.path.join( in_dir, name+'_UKIDSS_'+band+'.fits' ) ):
+            print 'No data for '+name+'_UKIDSS_'+band+'.fits'
             continue
 
         # Read in map, skipping if file is corrupt
         try:
-            in_image, in_header = astropy.io.fits.getdata( os.path.join( in_dir, name+'_2MASS_'+band.replace('Ks','K')+'.fits' ), header=True )
+            in_image, in_header = astropy.io.fits.getdata( os.path.join( in_dir, name+'_UKIDSS_'+band+'.fits' ), header=True )
         except:
-            print 'File '+name+'_2MASS_'+band.replace('Ks','K')+'.fits appears to be corrupted'
+            print 'File '+name+'_UKIDSS_'+band+'.fits appears to be corrupted'
             continue
         in_wcs = astropy.wcs.WCS(in_header)
         out_image = in_image.copy()
@@ -110,7 +117,9 @@ for i in range(0, name_list.shape[0]):
         cutout_header.set('TARGET', name , 'Target source of this map')
         cutout_header.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
         cutout_header.set('SIGUNIT', 'Jy/pix', 'Unit of the map')
-        cutout_header.set('TELESCOP', '2MASS', 'Telescope that made this observation')
+        cutout_header.set('TELESCOP', 'UKIRT', 'Telescope that made this observation')
+        cutout_header.set('INSTMNT', 'WFCAM', 'Instrument used for this observation')
+        cutout_header.set('SURVEY', 'UKIDSS', 'Survey that this obseravtions was taken as part of')
         cutout_header.set('FILTER', band, 'Filter used for observation')
         cutout_header.set('WVLNGTH', wavelength+'um', 'Wavelength of observation')
         cutout_header.set('MAPDATE', date, 'Date this map was produced by CJR Clark (Cardiff) from the reduced data')
@@ -129,27 +138,21 @@ for i in range(0, name_list.shape[0]):
         image_cutout_header = cutout_header.copy()
 
         # Produce HDU
-        image_cutout_hdu = astropy.io.fits.PrimaryHDU(data=out_image, header=image_cutout_header)
-
-        # Create hdulist and save to file
-        image_cutout_hdulist = astropy.io.fits.HDUList([image_cutout_hdu])
-        image_cutout_hdulist.writeto( os.path.join(out_dir, name+'_2MASS_'+band+'.fits' ), clobber=True)
+        astropy.io.fits.writeto( os.path.join(out_dir, name+'_UKIDSS_'+band+'.fits' ), out_image, header=image_cutout_header, clobber=True )
 
         # Make thumbnail image of cutout
         if thumbnails:
-            thumb_out = aplpy.FITSFigure(out_dir+name+'_2MASS_'+band+'.fits')
+            thumb_out = aplpy.FITSFigure(out_dir+name+'_UKIDSS_'+band+'.fits')
             thumb_out.show_colorscale(cmap='gray')
             thumb_out.axis_labels.hide()
             thumb_out.tick_labels.hide()
             thumb_out.ticks.hide()
-            thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=200, lw=2.0, edgecolor='#01DF3A', facecolor='#01DF3A' )
-            thumb_out.save( os.path.join(out_dir, 'Thumbnails', name+'_2MASS_'+band+'.png') )
+            thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
+            thumb_out.save( os.path.join(out_dir, 'Thumbnails', name+'_UKIDSS_'+band+'.jpg') )
             thumb_out.close()
 
-        # Close file, and clean memory
-        gc.collect()
-
-    # Report time until completion
+    # Clean memory and report time until completion
+    gc.collect()
     time_list.append( time.time() )
     time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
     print 'Estimated completion time: '+time_est

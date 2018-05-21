@@ -56,7 +56,7 @@ def WISE_Montage(name, ra, dec, width, band, input_dir, out_dir):
     os.makedirs(input_dir+band+'/'+'Montage_Temp')
     os.chdir(input_dir+band+'/'+'Montage_Temp')
     montage_wrapper.commands.mHdr(location_string, width, input_dir+band+'/'+str(name)+'_HDR', pix_size=1.375)
-    montage_wrapper.commands.mExec('2MASS', band.lower(), raw_dir=input_dir+band+'/', level_only=False, corners=False, debug_level=3, output_image=os.path.join( input_dir, name+'_WISE_'+band+'_Preprocess.fits' ), region_header=input_dir+band+'/'+str(name)+'_HDR', workspace_dir=input_dir+band+'/'+'Montage_Temp')
+    montage_wrapper.commands.mExec('2MASS', band.lower(), raw_dir=input_dir+band+'/', level_only=False, debug_level=3, output_image=os.path.join( input_dir, name+'_WISE_'+band+'_Preprocess.fits' ), region_header=input_dir+band+'/'+str(name)+'_HDR', workspace_dir=input_dir+band+'/'+'Montage_Temp')
     montage_wrapper.wrappers.reproject( os.path.join( input_dir, name+'_WISE_'+band+'_Preprocess.fits' ), os.path.join( out_dir, name+'_WISE_'+band+'.fits' ), header=input_dir+band+'/'+str(name)+'_HDR', exact_size=True, cleanup=True, silent_cleanup=True)
     shutil.rmtree(input_dir+band+'/Montage_Temp')
 
@@ -68,15 +68,15 @@ def WISE_Montage(name, ra, dec, width, band, input_dir, out_dir):
 if __name__ == "__main__":
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Mosaics/'
 
     # Read in source catalogue
-    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = NESS_cat['name']
 
     # Read in list of already-Montaged sources
-    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/WISE_Already_Processed_List.dat'
+    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/WISE_Already_Processed_List.dat'
     if not os.path.exists(already_processed_path):
         open(already_processed_path,'a')
     already_processed = np.genfromtxt(already_processed_path, dtype=('S50')).tolist()
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         dl_pool = mp.Pool(processes=20)
         for j in range(0, len(query_urls)):
             tile_url = query_urls[j]
-            tile_filename = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Temporary_Files/'+str(name)+'/Raw/'+str(name)+'_'+str(j)+'_'+str(query_bands[j])+'.fits'
+            tile_filename = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Temporary_Files/'+str(name)+'/Raw/'+str(name)+'_'+str(j)+'_'+str(query_bands[j])+'.fits'
             dl_pool.apply_async( WISE_wget, args=(tile_url, tile_filename,) )
         dl_pool.close()
         dl_pool.join()
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         gc.collect()
         time_list.append(time.time())
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-        time_file = open( os.path.join(in_dir,'Estimated_Completion_Time.txt'), 'w')
+        time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
         time_file.write(time_est)
         time_file.close()
         print 'Estimated completion time: '+time_est
@@ -205,12 +205,3 @@ if __name__ == "__main__":
 # Jubilate
 print 'All done!'
 
-
-
-
-
-"""
-query_fits = np.array(['.fits' in url for url in query_files])
-query_tiles = list(query_files[np.where(query_fits==True)])
-query_bands = list(query_bands[np.where(query_fits==True)])
-"""

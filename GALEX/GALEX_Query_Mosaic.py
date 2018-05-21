@@ -169,10 +169,8 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
 
     # Create convolved version of map, for later use in background-matching
     kernel_width = 20
-    """
-    conv_image = scipy.ndimage.filters.gaussian_filter(in_image, kernel_width)
-    conv_image[ np.where( np.isnan(out_image)==True ) ] = np.NaN
-    """
+    """conv_image = scipy.ndimage.filters.gaussian_filter(in_image, kernel_width)
+    conv_image[ np.where( np.isnan(out_image)==True ) ] = np.NaN"""
     kernel = astropy.convolution.kernels.Tophat2DKernel(kernel_width)
     conv_image = astropy.convolution.convolve_fft(out_image, kernel, nan_treatment='fill', fill_value=0.0, normalize_kernel=True, allow_huge=True)#, interpolate_nan=True, normalize_kernel=True)
     astropy.io.fits.writeto( os.path.join( conv_dir, raw_file ), conv_image, header=in_header )
@@ -297,11 +295,11 @@ def GALEX_Montage(name, ra, dec, width, band_dict, gal_dir, out_dir):
 if __name__ == "__main__":
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/GALEX/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/GALEX/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/GALEX/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/GALEX/Mosaics/'
 
     # Read in source catalogue
-    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = NESS_cat['name']
 
     # State band information
@@ -318,7 +316,7 @@ if __name__ == "__main__":
     os.mkdir(in_dir)
 
     # Read in list of already-processed sources, and identify sources not yet processed
-    already_file = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/GALEX/GALEX_Already_Processed_List.dat'
+    already_file = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/GALEX/GALEX_Already_Processed_List.dat'
     if not os.path.exists(already_file):
         open(already_file,'a')
     alrady_processed = np.genfromtxt(already_file, dtype=('S50')).tolist()
@@ -350,92 +348,92 @@ if __name__ == "__main__":
         # Try to catch chaos in the act, after multiple retries
         target_complete = False
         target_fail_count = 0
-#        while not target_complete:
-#            try:
-#                signal.alarm(1800)
-
-        # Create tile processing dirctories
-        os.mkdir( os.path.join( in_dir, name ) )
-        os.mkdir( os.path.join( in_dir, name, 'Download' ) )
-
-        # Perform query (removing pre-existing query file, if present)
-        print 'Querying GALEX server using SIA protocol'
-        query_success = False
-        while not query_success:
+        while not target_complete:
             try:
-                query_url = 'http://galex.stsci.edu/gxWS/SIAP6/gxSIAP.aspx?POS='+str(ra)+','+str(dec)+'&SIZE='+str(width)+'&INTERSECT=OVERLAPS&FORMAT=image/fits'
-                query_filename = os.path.join(in_dir,name,str(name)+'.vot')
-                if os.path.exists(query_filename):
-                    os.remove(query_filename)
-                wget.download(query_url, out=query_filename)
-                query_success = True
-            except:
+                signal.alarm(1800)
+
+                # Create tile processing dirctories
+                os.mkdir( os.path.join( in_dir, name ) )
+                os.mkdir( os.path.join( in_dir, name, 'Download' ) )
+
+                # Perform query (removing pre-existing query file, if present)
+                print 'Querying GALEX server using SIA protocol'
                 query_success = False
+                while not query_success:
+                    try:
+                        query_url = 'http://mast.stsci.edu/portal_vo/Mashup/VoQuery.asmx/SiaV1?MISSION=GALEX&POS='+str(ra)+','+str(dec)+'&SIZE='+str(width)+'&INTERSECT=OVERLAPS&FORMAT=image/fits'
+                        query_filename = os.path.join(in_dir,name,str(name)+'.vot')
+                        if os.path.exists(query_filename):
+                            os.remove(query_filename)
+                        wget.download(query_url, out=query_filename)
+                        query_success = True
+                    except:
+                        query_success = False
 
-        # Convert query result VOTable to csv, and read in
-        print 'Processing query result table'
-        query_urls = []
-        vot_request = requests.request('GET', query_url)
-        vot_data = xml.etree.ElementTree.XML(vot_request.content)
-        vot_resource = vot_data.find('{http://www.ivoa.net/xml/VOTable/v1.1}RESOURCE')
-        if vot_resource!=None:
-            vot_table = vot_resource.find('{http://www.ivoa.net/xml/VOTable/v1.1}TABLE').find('{http://www.ivoa.net/xml/VOTable/v1.1}DATA').find('{http://www.ivoa.net/xml/VOTable/v1.1}TABLEDATA')
-            for vot_child in vot_table.getchildren():
-                query_urls.append(vot_child[20].text)
-            query_complete = True
-        else:
-            vot_fail = True
+                # Read query result VOTable
+                query_table = astropy.table.Table.read(query_filename)
 
-        # If query finds no matches, continue to next target
-        if len(query_urls)==0:# or vot_fail==True:
-            print 'No GALEX data for '+name
+                # If query finds no matches, continue to next target
+                if len(query_table)==0:
+                    print 'No GALEX data for '+name
+                    alrady_processed_file = open(already_file, 'a')
+                    alrady_processed_file.write(name+'\n')
+                    alrady_processed_file.close()
+                    shutil.rmtree( os.path.join( in_dir, name ) )
+                    time_list.append(time.time())
+                    target_complete = True
+                    continue
+
+                # Grab fits files URLs
+                print 'Processing query result table'
+                query_urls = []
+                for i in range(len(query_table)):
+                    query_urls.append(query_table[i]['accessURL'])
+
+                # In parallel, download files to holding directory
+                print 'Retrieving GALEX data for '+name
+                os.chdir(in_dir)
+                dl_pool = mp.Pool(processes=20)
+                for j in range(0, len(query_urls)):
+                    primary_url = query_urls[j]
+                    for map_suffix in map_suffixes:
+                        tile_url = primary_url.replace('-int.fits.gz', map_suffix)
+                        tile_filename = os.path.join( in_dir, name, 'Download', tile_url.split('/')[-1] )
+                        #GALEX_wget( tile_url, os.path.join(in_dir,name,'Download',tile_filename) )
+                        dl_pool.apply_async( GALEX_wget, args=( tile_url, os.path.join(in_dir,name,'Download',tile_filename), ) )
+                dl_pool.close()
+                dl_pool.join()
+
+                # Check which bands have data
+                bands_dict_source = {}
+                for band in bands_dict.keys():
+                    for raw_file in os.listdir( os.path.join( in_dir, name, 'Download' ) ):
+                        if bands_dict[band]['band_short']+'-int.fits.gz' in raw_file:
+                            bands_dict_source[band] = bands_dict[band]
+
+                # Loop over bands, conducting mosaicing function
+                for band in bands_dict_source.keys():
+                    GALEX_Montage(name, ra, dec, width, bands_dict_source[band], os.path.join( in_dir, name ), out_dir )
+
+            except:
+                print('Failure!')
+
+            # Record that processing of souce has been compelted
             alrady_processed_file = open(already_file, 'a')
             alrady_processed_file.write(name+'\n')
             alrady_processed_file.close()
-            if os.path.exists(in_dir):
-                shutil.rmtree(in_dir)
-                os.mkdir(in_dir)
-            continue
 
-        # In parallel, download files to holding directory
-        print 'Retrieving GALEX data for '+name
-        os.chdir(in_dir)
-        dl_pool = mp.Pool(processes=20)
-        for j in range(0, len(query_urls)):
-            primary_url = query_urls[j]
-            for map_suffix in map_suffixes:
-                tile_url = primary_url.replace('-int.fits.gz', map_suffix)
-                tile_filename = os.path.join( in_dir, name, 'Download', tile_url.split('/')[-1] )
-                #GALEX_wget( tile_url, os.path.join(in_dir,name,'Download',tile_filename) )
-                dl_pool.apply_async( GALEX_wget, args=( tile_url, os.path.join(in_dir,name,'Download',tile_filename), ) )
-        dl_pool.close()
-        dl_pool.join()
+            # Clean memory, and return timings
+            shutil.rmtree( os.path.join( in_dir, name ) )
+            gc.collect()
+            time_list.append(time.time())
+            time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
+            time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
+            time_file.write(time_est)
+            time_file.close()
+            target_complete = True
+            print 'Estimated completion time: '+time_est
 
-        # Check which bands have data
-        bands_dict_source = {}
-        for band in bands_dict.keys():
-            for raw_file in os.listdir( os.path.join( in_dir, name, 'Download' ) ):
-                if bands_dict[band]['band_short']+'-int.fits.gz' in raw_file:
-                    bands_dict_source[band] = bands_dict[band]
-
-        # Loop over bands, conducting mosaicing function
-        for band in bands_dict_source.keys():
-            GALEX_Montage(name, ra, dec, width, bands_dict_source[band], os.path.join( in_dir, name ), out_dir )
-
-        # Record that processing of souce has been compelted
-        alrady_processed_file = open(already_file, 'a')
-        alrady_processed_file.write(name+'\n')
-        alrady_processed_file.close()
-
-        # Clean memory, and return timings
-        shutil.rmtree( os.path.join( in_dir, name ) )
-        gc.collect()
-        time_list.append(time.time())
-        time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-        time_file = open( os.path.join(in_dir,'Estimated_Completion_Time.txt'), 'w')
-        time_file.write(time_est)
-        time_file.close()
-        print 'Estimated completion time: '+time_est
 
 # Jubilate
 print 'All done!'

@@ -80,18 +80,18 @@ def Spitzer_SWarp_NaN(target):
 if __name__ == "__main__":
 
     # Decide what intrument to work for
-    instrument = 'IRAC'
+    instrument = 'MIPS'
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Mosaics_'+instrument+'/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Mosaics_'+instrument+'/'
 
     # Read in source catalogue
-    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
-    name_list = NESS_cat['name']
+    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
+    name_list = ness_cat['name']
 
     # Read in list of already-Montaged sources
-    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Spitzer_'+instrument+'_Already_Processed_List.dat'
+    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Spitzer_'+instrument+'_Already_Processed_List.dat'
     if not os.path.exists(already_processed_path):
         open(already_processed_path,'a')
     already_processed = np.genfromtxt(already_processed_path, dtype=('S50')).tolist()
@@ -103,9 +103,9 @@ if __name__ == "__main__":
         name = name_list[i]
         if name not in already_processed:
             remaining_list.append(i)
-    name_list = NESS_cat['name']
-    ra_list = NESS_cat['ra']
-    dec_list = NESS_cat['dec']
+    name_list = ness_cat['name']
+    ra_list = ness_cat['ra']
+    dec_list = ness_cat['dec']
 
     # State band information
     if instrument=='IRAC':
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     time_list = [ time.time() ]
 
     # Loop over each source
-    for i in range(0, NESS_cat.shape[0]):#np.where(name_list=='NGC0300')[0]:
+    for i in np.random.permutation(range(0, ness_cat.shape[0])):
         name = name_list[i].replace(' ','_')
         ra = ra_list[i]
         dec = dec_list[i]
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         print 'Checking existing finalised cutouts for matches to current source'
         bands_dict_req = {}
         for band in bands_dict.keys():
-            if name+'_Spitzer_'+bands_dict[band]['band_long']+'.fits.gz' not in os.listdir('/home/sarumandata2/spx7cjc/NESS/Test_Sample/Spitzer/Cutouts/'):
+            if name+'_Spitzer_'+bands_dict[band]['band_long']+'.fits.gz' not in os.listdir('/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Cutouts/'):
                 bands_dict_req[band] = bands_dict[band]
 
         # Create tile processing dirctories (deleting any prior), and set appropriate Python (ie, Montage) working directory
@@ -474,6 +474,9 @@ if __name__ == "__main__":
         shutil.rmtree(gal_dir)
         time_list.append( time.time() )
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
+        time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
+        time_file.write(time_est)
+        time_file.close()
         print 'Estimated completion time: '+time_est
 
 # Jubilate

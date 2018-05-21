@@ -164,14 +164,14 @@ if __name__ == "__main__":
                   '500':{'band':'500','instrument':'SPIRE','wavelength':'500um','filter':'PLW','pix_size':12,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PLW','hdr_err_ext_name':'error'}}
 
     # Read in source catalogue
-    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = ness_cat['name']
     ra_list = ness_cat['ra']
     dec_list = ness_cat['dec']
 
     # Give paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Herschel/Mosaics/'
-    our_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/Herschel/Cutouts/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Herschel/Mosaics/'
+    our_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Herschel/Cutouts/'
 
     # Record time taken
     time_total = 0.0

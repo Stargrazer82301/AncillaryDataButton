@@ -83,7 +83,7 @@ def SDSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
     os.makedirs(input_dir+'Montage_Temp')
     os.chdir(input_dir+'Montage_Temp')
     montage_wrapper.commands.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
-    montage_wrapper.commands.mExec('SDSS', band.lower(), raw_dir=input_dir, level_only=False, corners=False, debug_level=0, output_image=out_dir+name+'_SDSS_'+band+'.fits', region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
+    montage_wrapper.commands.mExec('SDSS', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=out_dir+name+'_SDSS_'+band+'.fits', region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
     shutil.rmtree(input_dir+'Montage_Temp')
     print 'Completed Montaging '+name+'_SDSS_'+band
 
@@ -98,19 +98,19 @@ if __name__ == "__main__":
     bands = ['u','g','r','i','z']
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/Mosaics/'
 
     # Read in source catalogue
-    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = NESS_cat['name']
 
     # Read in list of SDSS DR12 primary fields
-    dr12_pri = np.genfromtxt('/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/SDSS_DR12_Primary_Fields.dat.gz', names=True)
+    dr12_pri = np.genfromtxt('/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/SDSS_DR12_Primary_Fields.dat.gz', names=True)
     dr12_pri = [ str(int(pri['RUN']))+' '+str(int(pri['CAMCOL']))+' '+str(int(pri['FIELD'])) for pri in dr12_pri ]
 
     # Identify sources not yet processed
-    already_file = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/SDSS_Already_Processed_List.dat'
+    already_file = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/SDSS_Already_Processed_List.dat'
     if not os.path.exists(already_file):
         open(already_file,'a')
     alrady_processed = np.genfromtxt(already_file, dtype=('S50')).tolist()
@@ -155,7 +155,6 @@ if __name__ == "__main__":
             if coverage==False:
                 continue
             montage_wrapper.commands.mArchiveList('SDSS', band.lower(), str(ra)+' '+str(dec), width, width, tile_dir+'Query_'+band+'.txt')#width*(2.**0.5), width*(2.**0.5)
-
             # Check if query returned any results
             if os.stat(tile_dir+'Query_'+band+'.txt').st_size==0:
                 coverage = False
@@ -262,8 +261,9 @@ if __name__ == "__main__":
                     complete = True
                 except:
                     gc.collect()
-                    shutil.rmtree(input_dir+'/SWarp_Temp')
-                    print 'Mosaicing failed; reattemping'
+                    if os.path.exists(os.path.join(input_dir,'Montage_Temp')):
+                        shutil.rmtree(os.path.join(input_dir,'Montage_Temp'))
+                    print 'Mosaicing failed'
 
             # Record that processing of souce has been compelted
             alrady_processed_file = open(already_file, 'a')
@@ -275,7 +275,7 @@ if __name__ == "__main__":
             gc.collect()
             time_list.append(time.time())
             time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-            time_file = open( os.path.join(in_dir,'Estimated_Completion_Time.txt'), 'w')
+            time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
             time_file.write(time_est)
             time_file.close()
             print 'Estimated completion time: '+time_est
@@ -284,21 +284,3 @@ if __name__ == "__main__":
 print 'All done!'
 
 
-
-
-
-"""
-# Define function to SWarp together contents of folder, as per SDSS DR12 default.swarp
-os.environ['PATH'] = os.environ['PATH'] + ':/home/user/spx7cjc/swarp/bin'
-def SDSS_SWarp(name, ra, dec, width, band, input_dir, out_dir):
-    print 'SWarping '+name+'_SDSS_'+band
-    os.chdir(input_dir)
-    pix_size = 0.45
-    os.system('swarp *.fits -IMAGEOUT_NAME '+name+'_SDSS_'+band+'_SWarp.fits -WEIGHTOUT_NAME coadd.weight.fits -HEADER_ONLY N  -COMBINE Y -COMBINE_TYPE MEDIAN -COMBINE_BUFSIZE 1024 -CELESTIAL_TYPE NATIVE -PROJECTION_TYPE TAN -PROJECTION_ERR 0.001 -CENTER '+str(ra)+','+str(dec)+' -CENTER_TYPE MANUAL -RESAMPLE Y -RESAMPLE_DIR . -RESAMPLE_SUFFIX .resamp.fits -RESAMPLING_TYPE LANCZOS3 -OVERSAMPLING 0 -INTERPOLATE N -FSCALASTRO_TYPE FIXED -FSCALE_KEYWORD FLXSCALE -FSCALE_DEFAULT 1.0 -GAIN_KEYWORD GAIN -GAIN_DEFAULT 0.0 -SUBTRACT_BACK N -BACK_TYPE AUTO -BACK_DEFAULT 0.0 -BACK_SIZE 128 -BACK_FILTERSIZE 3 -VMEM_DIR . -VMEM_MAX 2047 -MEM_MAX 2048 -DELETE_TMPFILES Y -COPY_KEYWORDS OBJECT -WRITE_FILEINFO Y -WRITE_XML N -XML_NAME swarp.xml -VERBOSE_TYPE QUIET -NTHREADS 3 -IMAGE_SIZE '+str((width*3600.)/pix_size)+','+str((width*3600.)/pix_size)+' -PIXELSCALE_TYPE MANUAL -PIXEL_SCALE '+str(pix_size))
-    shutil.copy2(input_dir+name+'_SDSS_'+band+'_SWarp.fits', out_dir)
-    print 'Completed SWarping '+name+'_SDSS_'+band
-"""
-
-"""
-#pool.apply_async( SDSS_SWarp, args=(name, ra, dec, width, band, input_dir, out_dir,) )#SDSS_SWarp(name, ra, dec, width, band, input_dir, out_dir)
-"""

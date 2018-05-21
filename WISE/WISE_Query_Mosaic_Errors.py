@@ -97,15 +97,15 @@ def WISE_Montage(name, ra, dec, width, band, input_dir, out_dir):
 if __name__ == "__main__":
 
     # Define paths
-    in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Temporary_Files/'
-    out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Mosaics/'
+    in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Temporary_Files/'
+    out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Mosaics/'
 
     # Read in source catalogue
-    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+    ness_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
     name_list = ness_cat['name']
 
     # Read in list of already-Montaged sources
-    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/WISE_Already_Processed_List_Errors.dat'
+    already_processed_path = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/WISE_Already_Processed_List_Errors.dat'
     if not os.path.exists(already_processed_path):
         open(already_processed_path,'a')
     already_processed = np.genfromtxt(already_processed_path, dtype=('S50')).tolist()
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         dl_pool = mp.Pool(processes=20)
         for j in range(0, len(query_urls)):
             tile_url = query_urls[j]
-            tile_filename = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Temporary_Files/'+str(name)+'/Raw/'+str(name)+'_'+str(j)+'_'+str(query_bands[j])+'.fits.gz'
+            tile_filename = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Temporary_Files/'+str(name)+'/Raw/'+str(name)+'_'+str(j)+'_'+str(query_bands[j])+'.fits.gz'
             #WISE_wget(tile_url, tile_filename)
             dl_pool.apply_async( WISE_wget, args=(tile_url, tile_filename,) )
         dl_pool.close()
@@ -207,8 +207,8 @@ if __name__ == "__main__":
                 signal.alarm(1800)
                 pool = mp.Pool(processes=4)
                 for band in bands:
-                    WISE_Montage(name, ra, dec, width, band, os.path.join(gal_dir,band), out_dir)
-                    #pool.apply_async( WISE_Montage, args=(name, ra, dec, width, band, os.path.join(gal_dir,band), out_dir,) )
+                    #WISE_Montage(name, ra, dec, width, band, os.path.join(gal_dir,band), out_dir)
+                    pool.apply_async( WISE_Montage, args=(name, ra, dec, width, band, os.path.join(gal_dir,band), out_dir,) )
                 pool.close()
                 pool.join()
                 complete = True
@@ -220,12 +220,17 @@ if __name__ == "__main__":
                         shutil.rmtree(input_dir+'/Montage_Temp')
                 print exception_msg
 
+        # Record that processing of souce has been compelted
+        alrady_processed_file = open(already_processed_path, 'a')
+        alrady_processed_file.write(name+'\n')
+        alrady_processed_file.close()
+
         # Clean memory, and return timings
         shutil.rmtree( os.path.join( in_dir, name ) )
         gc.collect()
         time_list.append(time.time())
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-        time_file = open( os.path.join(in_dir,'Estimated_Completion_Time.txt'), 'w')
+        time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Errors_Completion_Time.txt'), 'w')
         time_file.write(time_est)
         time_file.close()
         print 'Estimated completion time: '+time_est

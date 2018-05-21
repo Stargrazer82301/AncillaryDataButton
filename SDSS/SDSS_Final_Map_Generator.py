@@ -44,14 +44,14 @@ wavelengths = ['355.10', '468.60', '616.60', '748.00', '893.20']
 SDSS_to_AB = [-0.04, 0.0, 0.0, 0.0, +0.02]
 
 # Read in source catalogue
-jingle_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+jingle_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
 name_list = jingle_cat['name']
 ra_list = jingle_cat['ra']
 dec_list = jingle_cat['dec']
 
 # Give paths
-in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/Mosaics/'
-out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/SDSS/Cutouts/'
+in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/Mosaics/'
+out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/Cutouts/'
 
 # Initiate timing
 time_list = [ time.time() ]

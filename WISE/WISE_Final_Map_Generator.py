@@ -39,14 +39,14 @@ zero_points = [20.5, 19.5, 18.0, 13.0]
 WISE_to_AB = [+2.669, +3.339, +5.174, +6.620]
 
 # Read in source catalogue
-NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Test_Sample.csv', delimiter=',', names=True, dtype=None)
+NESS_cat = np.genfromtxt(dropbox+'Work/Tables/NESS/NESS_Sample.csv', delimiter=',', names=True, dtype=None)
 name_list = NESS_cat['name']
 ra_list = NESS_cat['ra']
 dec_list = NESS_cat['dec']
 
 # Give paths
-in_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Mosaics/'
-out_dir = '/home/sarumandata2/spx7cjc/NESS/Test_Sample/WISE/Cutouts/'
+in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Mosaics/'
+out_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/WISE/Cutouts/'
 
 # Initiate timing
 time_list = [ time.time() ]
