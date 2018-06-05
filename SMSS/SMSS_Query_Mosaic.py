@@ -82,7 +82,7 @@ def SMSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
     montage_wrapper.commands.mImgtbl(os.path.join(input_dir), os.path.join(input_dir,band+'_Image_Metadata_Table.dat'), corners=True)
     montage_wrapper.commands.mProjExec(os.path.join(input_dir,band+'_Image_Metadata_Table.dat'), os.path.join(input_dir,str(name)+'_HDR'), os.path.join(input_dir,'Proj_Temp'), os.path.join(input_dir,band+'_Proj_Stats.txt'), raw_dir=os.path.join(in_dir), debug=False, exact=True, whole=True)
     os.chdir(os.path.join(input_dir,'Proj_Temp'))
-    os.system("rename.ul hdu0_IRAS IRAS *IRAS*")
+    os.system('rename.ul hdu0_'+name+' '+name+' *'+name+'*')
     os.chdir(input_dir)
 
     # Model and match backgrounds for all images
