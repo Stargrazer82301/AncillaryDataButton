@@ -80,7 +80,10 @@ def SMSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
     # Regrid images to same projection
     montage_wrapper.commands.mHdr(location_string, map_width, os.path.join(input_dir,str(name)+'_HDR'), pix_size=0.4)
     montage_wrapper.commands.mImgtbl(os.path.join(input_dir), os.path.join(input_dir,band+'_Image_Metadata_Table.dat'), corners=True)
-    montage_wrapper.commands.mProjExec(os.path.join(input_dir,band+'_Image_Metadata_Table.dat'), os.path.join(input_dir,str(name)+'_HDR'), os.path.join(input_dir,'Proj_Temp'), os.path.join(input_dir,band+'_Proj_Stats.txt'), raw_dir=os.path.join(in_dir), debug=False, exact=True, whole=True)
+    try:
+        montage_wrapper.commands.mProjExec(os.path.join(input_dir,band+'_Image_Metadata_Table.dat'), os.path.join(input_dir,str(name)+'_HDR'), os.path.join(input_dir,'Proj_Temp'), os.path.join(input_dir,band+'_Proj_Stats.txt'), raw_dir=os.path.join(in_dir), debug=False, exact=True, whole=True)
+    except Exception, exception_msg:
+        print 'mProjExec failed with error message: '+exception_msg
     os.chdir(os.path.join(input_dir,'Proj_Temp'))
     os.system('rename.ul hdu0_'+name+' '+name+' *'+name+'*')
     os.chdir(input_dir)
@@ -156,7 +159,7 @@ if __name__  ==  "__main__":
 
     # State band information
     bands_list = ['u','v','g','r','i','z']
-    bands_zp = [25.47, 24.88, 25.68, 25.46, 25.43, 25.47]
+    bands_zp = np.array([25.47, 24.88, 25.68, 25.46, 25.43, 25.47])
 
     # Register signal function handler, for dealing with timeouts
     signal.signal(signal.SIGALRM, Handler)
@@ -195,6 +198,7 @@ if __name__  ==  "__main__":
         # Loop over bands
         bands_data = [False]*len(bands_list)
         for b in range(len(bands_list)):
+            print('############### USING SHORT DUMMY BANDS LIST FOR TESTING ###############')
             band = bands_list[b]
             smss_urls = []
             os.makedirs(os.path.join(gal_dir,band))
@@ -244,7 +248,7 @@ if __name__  ==  "__main__":
                         except:
                             print 'SIAP query failed; reattempting'
                             query_fail_count += 1
-                            time.sleep(5)
+                            time.sleep(1)
                     if not os.path.exists(query_filename):
                         query_fail_count += 1
                         query_success = False
@@ -321,28 +325,28 @@ if __name__  ==  "__main__":
         while not complete:
             if fail_counter >= 3:
                 continue
-#            try:
-#            signal.alarm(7200)
-            pool = mp.Pool(processes=6)
-            for b in range(0, len(bands_list)):
-                if bands_data[b]==False:
-                    continue
-                band = bands_list[b]
-                pool.apply_async( SMSS_Montage, args=(name, ra, dec, 0.5, width, band, os.path.join( in_dir, name, band ), out_dir,) )
-                #SMSS_Montage(name, ra, dec, 0.5, width, band, os.path.join( in_dir, name, band ), out_dir)#3600.0*pix_min[b]
-            pool.close()
-            pool.join()
-            shutil.rmtree( os.path.join( in_dir, name ) )
-            complete = True
-#            except Exception, exception_msg:
-#                fail_counter += 1
-#                gc.collect()
-#                for band in bands_list:
-#                    input_dir = os.path.join(in_dir,name)+band+'/'
-#                    if os.path.exists(input_dir+'/Montage_Temp'):
-#                        shutil.rmtree(input_dir+'/Montage_Temp')
-#                print 'Mosaicing failure!'
-#                print exception_msg
+            try:
+                """signal.alarm(7200)"""
+                pool = mp.Pool(processes=6)
+                for b in range(0, len(bands_list)):
+                    if bands_data[b]==False:
+                        continue
+                    band = bands_list[b]
+                    pool.apply_async( SMSS_Montage, args=(name, ra, dec, 0.5, width, band, os.path.join( in_dir, name, band ), out_dir,) )
+                    #SMSS_Montage(name, ra, dec, 0.5, width, band, os.path.join( in_dir, name, band ), out_dir)#3600.0*pix_min[b]
+                pool.close()
+                pool.join()
+                shutil.rmtree( os.path.join( in_dir, name ) )
+                complete = True
+            except Exception, exception_msg:
+                fail_counter += 1
+                gc.collect()
+                for band in bands_list:
+                    input_dir = os.path.join(in_dir,name)+band+'/'
+                    if os.path.exists(input_dir+'/Montage_Temp'):
+                        shutil.rmtree(input_dir+'/Montage_Temp')
+                print 'Mosaicing failure!'
+                print exception_msg
 
         # Record that processing of souce has been compelted
         alrady_processed_file = open(already_file, 'a')

@@ -109,7 +109,7 @@ if __name__ == "__main__":
     time_list = [time.time()]
 
     # Loop over each source
-    for i in np.random.permutation(np.array(range(0, ness_cat.shape[0]))):#np.where(name_list=='NESS27')[0]:
+    for i in np.random.permutation(np.array(range(0, ness_cat.shape[0]))):
         name = name_list[i].replace(' ','_')
         ra = ra_list[i]
         dec = dec_list[i]

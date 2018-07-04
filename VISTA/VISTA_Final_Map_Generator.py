@@ -163,6 +163,6 @@ for i in range(0, name_list.shape[0]):
     time_list.append( time.time() )
     time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
     print 'Estimated completion time: '+time_est
-
+    sdfsdf
 # Jubilate
 print 'All done!'

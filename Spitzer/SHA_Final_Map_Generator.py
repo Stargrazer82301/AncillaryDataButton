@@ -164,7 +164,7 @@ if __name__ == "__main__":
     thumbnails = False
 
     # Decide what intrument to work for
-    instrument = 'MIPS'
+    instrument = 'IRAC'
 
     # State band information
     if instrument=='IRAC':

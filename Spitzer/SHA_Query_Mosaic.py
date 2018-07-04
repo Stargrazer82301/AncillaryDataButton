@@ -80,7 +80,7 @@ def Spitzer_SWarp_NaN(target):
 if __name__ == "__main__":
 
     # Decide what intrument to work for
-    instrument = 'MIPS'
+    instrument = 'IRAC'
 
     # Define paths
     in_dir = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Temporary_Files/'
@@ -130,14 +130,14 @@ if __name__ == "__main__":
         ra = ra_list[i]
         dec = dec_list[i]
         time_start = time.time()
-        width = 0.25
+        width = 0.25#
         print 'Processing source '+name
 
         # Check if source is in list of already-montaged sources
         if name in already_processed:
             print name+' already processed'
             continue
-#
+
         # Check which, if any, bands already have data
         print 'Checking existing finalised cutouts for matches to current source'
         bands_dict_req = {}
