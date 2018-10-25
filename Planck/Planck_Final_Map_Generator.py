@@ -42,7 +42,7 @@ def Planck_Generator(name, in_dir, band_dict, thumbnails):
 
     # Check if source has coverage in this band
     if not os.path.exists(in_dir+name+'_Planck_'+wavelength+'.fits'):
-        print name+' has no coverage at '+wavelength
+        print(name+' has no coverage at '+wavelength)
     else:
 
         # Read in map
@@ -114,7 +114,7 @@ def Planck_Generator(name, in_dir, band_dict, thumbnails):
                 thumb_out.save(our_dir+'Thumbnails/'+name+'_Planck_'+wavelength+'.png')
                 thumb_out.close()
             except:
-                print 'Failed making thumbnail for '+name
+                print('Failed making thumbnail for '+name)
                 pdb.set_trace()
 
         # Close file, and clean memory
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     time_list = [time.time()]
 
     # Loop over each source
-    for i in range(0, name_list.shape[0]):#np.where(name_list=='NGC3031')[0]:
+    for i in range(0, name_list.shape[0]):
         name = name_list[i].replace(' ','_')
         ra = ra_list[i]
         dec = dec_list[i]
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             continue
 
         # In parallel, process each band
-        print 'Processing '+str(name)
+        print('Processing '+str(name))
         pool = mp.Pool(processes=9)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         # Report predicted time remaining
         time_list.append(time.time())
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-        print 'Estimated completion time: '+time_est
+        print('Estimated completion time: '+time_est)
 
     # Jubilate
-    print 'All done!'
+    print('All done!')

@@ -50,7 +50,7 @@ def Planck_wget(tile_url, tile_filename):
 
 # Define function to query for, and retrieve, DSS data from NASA SkyView
 def Planck_SkyView(name, ra, dec, width, band, bands_dict, out_dir):
-    print 'Retrieving '+band+' data for '+name+' from NASA SkyView'
+    print('Retrieving '+band+' data for '+name+' from NASA SkyView')
     position_string = str(ra)+' '+str(dec)
     query_success = None
     query_reattempt = False
@@ -69,7 +69,7 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, out_dir):
 
     # Retrieve and verify data
     if query_success:
-        print 'Retrieving identified Planck '+band+' data for '+name
+        print('Retrieving identified Planck '+band+' data for '+name)
         Planck_wget(str(query_url[0]), query_filename)
         try:
             astropy.io.fits.info(query_filename)
@@ -81,7 +81,7 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, out_dir):
 
     # Report failure
     if not query_success:
-        print 'No Planck '+band+' data for '+name
+        print('No Planck '+band+' data for '+name)
         pdb.set_trace()
 
 
@@ -137,9 +137,9 @@ if __name__ == "__main__":
         ra = ra_list[i]
         dec = dec_list[i]
         width = 5.0
-        print 'Processing target '+name
+        print('Processing target '+name)
 
-        # In parallel, retrieve DSS data in each band from NASA SkyView
+        # In parallel, retrieve Planck data in each band from NASA SkyView
         pool = mp.Pool(processes=5)
         for band in bands_dict.keys():
             pool.apply_async( Planck_SkyView, args=(name, ra, dec, width, band, bands_dict, out_dir,) )
@@ -159,10 +159,10 @@ if __name__ == "__main__":
         time_file = open( os.path.join('/'.join(in_dir.split('/')[:-1]),'Estimated_Completion_Time.txt'), 'w')
         time_file.write(time_est)
         time_file.close()
-        print 'Estimated completion time: '+time_est
+        print('Estimated completion time: '+time_est)
 
 # Jubilate
-print 'All done!'
+print('All done!')
 
 
 
