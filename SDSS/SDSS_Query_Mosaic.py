@@ -7,6 +7,8 @@ if location == 'Hobbitslayer':
     dropbox = 'C:\\Users\\spx7cjc\\Dropbox\\'
 if location == 'saruman':
     dropbox = '/home/user/spx7cjc/Desktop/Herdata/Dropbox/'
+if location == 'replicators.stsci.edu':
+    dropbox = '/Users/cclark/Dropbox/'
 
 # Import smorgasbord
 import os
@@ -49,7 +51,7 @@ def SDSS_URL(run, camcol, field, band):
 # Define function to wget SDSS fields; reject and re-acquire fields less than 1MB in size
 def SDSS_wget(tile_url, path):
     fitsname = tile_url.split('/')[-1:][0]
-    print 'Acquiring '+fitsname
+    print('Acquiring '+fitsname)
     if os.path.exists(path+fitsname):
         os.remove(path+fitsname)
     else:
@@ -60,23 +62,21 @@ def SDSS_wget(tile_url, path):
                 filesize = os.stat(path+fitsname).st_size
                 if float(filesize)<1048576.0:
                     raise NameError('File not large enough')
-                print 'Successful acquisition of '+fitsname
+                print('Successful acquisition of '+fitsname)
                 success = True
             except:
-                print 'Failure! Retrying acquistion of '+fitsname
+                print('Failure! Retrying acquistion of '+fitsname)
                 time.sleep(0.1)
                 success = False
 
 # Define function to extract SDSS bz2 archives
 def SDSS_Extract(filepath):
-    print 'Decompressing file '+str( filepath.split('/')[-1:][0] )
+    print('Decompressing file '+str( filepath.split('/')[-1:][0] ))
     os.system('bzip2 -d '+filepath)
-
-
 
 # Define function to Montage together contents of folder
 def SDSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
-    print 'Montaging '+name+'_SDSS_'+band
+    print('Montaging '+name+'_SDSS_'+band)
     location_string = str(ra)+' '+str(dec)
     if os.path.exists(input_dir+'Montage_Temp'):
         shutil.rmtree(input_dir+'Montage_Temp')
@@ -85,7 +85,7 @@ def SDSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
     montage_wrapper.commands.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
     montage_wrapper.commands.mExec('SDSS', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=out_dir+name+'_SDSS_'+band+'.fits', region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
     shutil.rmtree(input_dir+'Montage_Temp')
-    print 'Completed Montaging '+name+'_SDSS_'+band
+    print('Completed Montaging '+name+'_SDSS_'+band)
 
 
 
@@ -132,13 +132,14 @@ if __name__ == "__main__":
     time_list = [time.time()]
 
     # Loop over each source
-    for i in range(0, NESS_cat.shape[0]):#[np.where(name_list=='UGC03016')[0][0]]:
-        name = name_list[i].replace(' ','_')
+    for i in range(0, NESS_cat.shape[0]):
+        print('##### THIS IS JUST GRABBING ORIION, K? #####')
+        name = 'Orion'#name_list[i].replace(' ','_')
         ra = ra_list[i]
         dec = dec_list[i]
         time_start = time.time()
         width = 0.25
-        print 'Processing target '+name
+        print('Processing target '+name)
 
         # Create field processing dirctories (deleting any prior), and set appropriate Python (ie, SWarp) working directory
         tile_dir = in_dir+str(name)+'/'
@@ -171,14 +172,14 @@ if __name__ == "__main__":
         # Remove duplicate URLs from URL list, and only use primary runs
         sdss_urls = list(set(sdss_urls))
         sdss_urls_pri = SDSS_Primary_Check(sdss_urls, dr12_pri)
-        print str(len(sdss_urls_pri))+' of '+str(len(sdss_urls))+' urls for '+name+' are primary'
+        print(str(len(sdss_urls_pri))+' of '+str(len(sdss_urls))+' urls for '+name+' are primary')
         sdss_urls = sdss_urls_pri
         if len(sdss_urls)==0:
             coverage = False
 
         # If no SDSS coverge, record, clean up, and skip onwards
         if coverage==False:
-            print name+' not covered by SDSS'
+            print(name+' not covered by SDSS')
             alrady_processed_file = open(already_file, 'a')
             alrady_processed_file.write(name+'\n')
             alrady_processed_file.close()
@@ -188,7 +189,7 @@ if __name__ == "__main__":
         else:
 
             # In parallel, download SDSS fields (NB: SDSS server will not permit more than 5 simultaneous wget downloads)
-            print 'Downloading '+str(len(sdss_urls))+' SDSS fields for '+name
+            print('Downloading '+str(len(sdss_urls))+' SDSS fields for '+name)
             dl_complete = False
             dl_fail_count = 0
             while not dl_complete:
@@ -209,7 +210,7 @@ if __name__ == "__main__":
                     os.chdir(tile_dir+'Raw')
                     if dl_fail_count==5:
                         dl_complete = True
-                    print 'Download sequence failed; reattemping'
+                    print('Download sequence failed; reattemping')
 
             # In parallel, extract SDSS fields from their bz2 archives
             raw_files = np.array(os.listdir(tile_dir+'Raw/'))
@@ -227,7 +228,7 @@ if __name__ == "__main__":
             elif sum(1 for line in open(tile_dir+'Metada_Query_'+band+'.dat'))>=3:
                 pass
             else:
-                print name+' not covered by SDSS'
+                print(name+' not covered by SDSS')
                 no_coverage_file = open('/home/saruman/spx7cjc/NESS/SDSS/SDSS_No_Coverage_List.dat', 'a')
                 no_coverage_file.write(name+'\n')
                 no_coverage_file.close()
@@ -263,7 +264,7 @@ if __name__ == "__main__":
                     gc.collect()
                     if os.path.exists(os.path.join(input_dir,'Montage_Temp')):
                         shutil.rmtree(os.path.join(input_dir,'Montage_Temp'))
-                    print 'Mosaicing failed'
+                    print('Mosaicing failed')
 
             # Record that processing of souce has been compelted
             alrady_processed_file = open(already_file, 'a')
@@ -278,9 +279,9 @@ if __name__ == "__main__":
             time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
             time_file.write(time_est)
             time_file.close()
-            print 'Estimated completion time: '+time_est
+            print('Estimated completion time: '+time_est)
 
 # Jubilate
-print 'All done!'
+print('All done!')
 
 
