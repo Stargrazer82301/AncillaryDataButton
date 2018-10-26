@@ -27,26 +27,69 @@ import ChrisFuncs
 
 
 
-# Define a timeout handler
-def Handler(signum, frame):
-    raise Exception("Timout!")
+## Define a timeout handler
+#def Handler(signum, frame):
+#    raise Exception("Timout!")
+#
+## Define function to check if a list of SDSS DR12 URL correspond to a primary fields, and return only those that are
+#def SDSS_Primary_Check(urls, index):
+#    urls_pri = []
+#    for url in urls:
+#        run = url.split('/')[9].lstrip('0')
+#        camcol = url.split('/')[10].lstrip('0')
+#        field = url.split('/')[11].split('.')[0].split('-')[4].lstrip('0')
+#        check_string = run+' '+camcol+' '+field
+#        if check_string in index:
+#            urls_pri.append(url)
+#    return urls_pri
+#
+## Define function to consturct URL for a given SDSS field
+#def SDSS_URL(run, camcol, field, band):
+#    sdss_url = 'http://data.sdss3.org/sas/dr12/boss/photoObj/frames/301/'+run+'/'+camcol+'/frame-'+band+'-'+run.zfill(6)+'-'+camcol+'-'+field.zfill(4)+'.fits.bz2'
+#    return sdss_url
+#
+## Define function to wget SDSS fields; reject and re-acquire fields less than 1MB in size
+#def SDSS_wget(tile_url, path):
+#    fitsname = tile_url.split('/')[-1:][0]
+#    print('Acquiring '+fitsname)
+#    if os.path.exists(path+fitsname):
+#        os.remove(path+fitsname)
+#    else:
+#        success = False
+#        while success==False:
+#            try:
+#                wget.download(tile_url, out=path+fitsname)
+#                filesize = os.stat(path+fitsname).st_size
+#                if float(filesize)<1048576.0:
+#                    raise NameError('File not large enough')
+#                print('Successful acquisition of '+fitsname)
+#                success = True
+#            except:
+#                print('Failure! Retrying acquistion of '+fitsname)
+#                time.sleep(0.1)
+#                success = False
+#
+## Define function to extract SDSS bz2 archives
+#def SDSS_Extract(filepath):
+#    print('Decompressing file '+str( filepath.split('/')[-1:][0] ))
+#    os.system('bzip2 -d '+filepath)
+#
+#
+#
+## Define function to Montage together contents of folder
+#def SDSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
+#    print('Montaging '+name+'_SDSS_'+band)
+#    location_string = str(ra)+' '+str(dec)
+#    if os.path.exists(input_dir+'Montage_Temp'):
+#        shutil.rmtree(input_dir+'Montage_Temp')
+#    os.makedirs(input_dir+'Montage_Temp')
+#    os.chdir(input_dir+'Montage_Temp')
+#    montage_wrapper.commands.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
+#    montage_wrapper.commands.mExec('SDSS', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=out_dir+name+'_SDSS_'+band+'.fits', region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
+#    shutil.rmtree(input_dir+'Montage_Temp')
+#    print('Completed Montaging '+name+'_SDSS_'+band)
 
-# Define function to check if a list of SDSS DR12 URL correspond to a primary fields, and return only those that are
-def SDSS_Primary_Check(urls, index):
-    urls_pri = []
-    for url in urls:
-        run = url.split('/')[9].lstrip('0')
-        camcol = url.split('/')[10].lstrip('0')
-        field = url.split('/')[11].split('.')[0].split('-')[4].lstrip('0')
-        check_string = run+' '+camcol+' '+field
-        if check_string in index:
-            urls_pri.append(url)
-    return urls_pri
 
-# Define function to consturct URL for a given SDSS field
-def SDSS_URL(run, camcol, field, band):
-    sdss_url = 'http://data.sdss3.org/sas/dr12/boss/photoObj/frames/301/'+run+'/'+camcol+'/frame-'+band+'-'+run.zfill(6)+'-'+camcol+'-'+field.zfill(4)+'.fits.bz2'
-    return sdss_url
 
 # Define function to wget SDSS fields; reject and re-acquire fields less than 1MB in size
 def SDSS_wget(tile_url, path):
@@ -110,7 +153,7 @@ if __name__ == "__main__":
     dr12_pri = [ str(int(pri['RUN']))+' '+str(int(pri['CAMCOL']))+' '+str(int(pri['FIELD'])) for pri in dr12_pri ]
 
     # Identify sources not yet processed
-    already_file = '/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/SDSS/SDSS_Already_Processed_List.dat'
+    already_file = 'SDSS_Already_Processed_List.dat'
     if not os.path.exists(already_file):
         open(already_file,'a')
     alrady_processed = np.genfromtxt(already_file, dtype=('S50')).tolist()
