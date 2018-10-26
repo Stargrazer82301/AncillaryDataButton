@@ -157,10 +157,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, t
         print('Processing Planck data for target '+name)
 
         # In parallel, retrieve Planck data in each band from NASA SkyView
-        pool = mp.Pool(processes=9)
+        pool = mp.Pool(processes=5)
         for band in bands_dict.keys():
-            pool.apply_async( Planck_SkyView, args=(name, ra, dec, width, band, bands_dict, temp_dir,) )
-            #Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir)
+            #pool.apply_async( Planck_SkyView, args=(name, ra, dec, width, band, bands_dict, temp_dir,) )
+            Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir)
         pool.close()
         pool.join()
 
@@ -168,8 +168,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, t
         pool = mp.Pool(processes=9)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            pool.apply_async( Planck_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails,) )
-            #Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails)
+            #pool.apply_async( Planck_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails,) )
+            Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails)
         pool.close()
         pool.join()
 
