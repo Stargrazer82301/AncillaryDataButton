@@ -21,7 +21,7 @@ import ChrisFuncs
 
 
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, thumbnails=False):
+def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False):
     """
     Function to generate standardised cutouts of Planck observations.
 
@@ -50,6 +50,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, t
                 previous runs of the function, and will not bother repeat creating these maps (making it easy to resume
                 processing a large number of targets from an interruption. If True, Planck_Button will produce maps for
                 all input targets, regardless of whether maps for these targets already exist in the output directory.
+        flux: bool, optional
+                If True, output maps will be in flux density units of Jy/pix. If false, output maps will be in surface
+                brightness units of MJy/sr.
         thumbnails: bool, optional
                 If True, JPG thumbnail images of the generated maps will also be proced and placed in out_dir.
     """
@@ -168,19 +171,23 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, t
         pool = mp.Pool(processes=9)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            #pool.apply_async( Planck_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails,) )
-            Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails)
+            #pool.apply_async( Planck_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,) )
+            Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
         pool.close()
         pool.join()
 
-        # Clean memory, and return timings
+        # Clean memory, and return timings (if more than one target being processed)
         gc.collect()
         time_list.append(time.time())
         time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-        print('Estimated time until Planck data completed for all targets: '+time_est)
+        if len(name) > 1:
+            print('Estimated time until Planck data completed for all targets: '+time_est)
 
     # Report completion
-    shutil.rmtree(temp_dir)
+    try:
+        shutil.rmtree(temp_dir)
+    except:
+        pdb.set_trace()
     gc.collect()
     print('All available Planck data acquired for all targets')
 
@@ -232,7 +239,7 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
 
 
 # Define function to finalise Planck image of a given source in a given band
-def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails):
+def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
     wavelength = band_dict['wavelength']
     print('Generating final standardised map of Planck '+wavelength+'um data for '+name)
 
@@ -259,9 +266,12 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails):
         if band_dict['units']=='K(cmb)':
             out_img *= band_dict['conversion']
 
-        # Convert pixel units from MJy/sr to Jy/pix
-        out_img *= 1E6
-        out_img *= sr_per_pixels
+        # If desired, convert pixel units from MJy/sr to Jy/pix
+        pix_unit = 'MJy/sr'
+        if flux:
+            out_img *= 1E6
+            out_img *= sr_per_pixels
+            pix_unit = 'Jy/pix'
 
         # Create standard header
         out_hdr = astropy.io.fits.Header()
@@ -270,7 +280,7 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails):
         # Populate standard header entries
         out_hdr.set('TARGET', name, 'Target source of this map')
         out_hdr.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
-        out_hdr.set('SIGUNIT', 'Jy/pix', 'Unit of the map')
+        out_hdr.set('SIGUNIT', pix_unit, 'Unit of the map')
         out_hdr.set('TELESCOP', 'Planck', 'Telescope that made this observation')
         out_hdr.set('INSTMNT', band_dict['instrument'], 'Instrument used for this observation')
         out_hdr.set('FREQ', band_dict['freq'], 'Filter used for this observation')
@@ -303,7 +313,7 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, thumbnails):
                 thumb_out.tick_labels.hide()
                 thumb_out.ticks.hide()
                 thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
-                thumb_out.save(os.path.join(out_dir,name+'_Planck_'+wavelength+'.jpg'))
+                thumb_out.save(os.path.join(out_dir,name+'_Planck_'+wavelength+'.jpg'), dpi=125)
                 thumb_out.close()
             except:
                 print('Failed making thumbnail for '+name)
