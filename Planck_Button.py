@@ -122,6 +122,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     else:
         os.mkdir(temp_dir)
 
+    # Define dictionary of band properties
     bands_dict = {'Planck030':{'band_name':'Planck 030','freq':'30GHz','wavelength':'10600','pix_size':204.0,'beam_area':1188.945,'units':'K(cmb)','instrument':'LFI','conversion':0.979328*24.845597},
                   'Planck044':{'band_name':'Planck 044','freq':'44GHz','wavelength':'6810','pix_size':204.0,'beam_area':832.168,'units':'K(cmb)','instrument':'LFI','conversion':0.95121302*59.666236},
                   'Planck070':{'band_name':'Planck 070','freq':'70GHz','wavelength':'4260','pix_size':204.0,'beam_area':200.519,'units':'K(cmb)','instrument':'LFI','conversion':0.88140690*151.73238},
@@ -187,7 +188,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     try:
         shutil.rmtree(temp_dir)
     except:
-        pdb.set_trace()
+        try:
+            time.sleep(10.0)
+            shutil.rmtree(temp_dir)
+        except:
+            pdb.set_trace()
     gc.collect()
     print('All available Planck data acquired for all targets')
 
@@ -197,7 +202,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
 
 
-# Define function to query for, and retrieve, DSS data from NASA SkyView
+# Define function to query for, and retrieve, Planck data from NASA SkyView
 def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
     print('Querying for Planck '+bands_dict[band]['wavelength']+'um data for '+name+' from NASA SkyView')
     position_string = str(ra)+' '+str(dec)
@@ -288,7 +293,7 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnai
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
         out_hdr.set('SOFTWARE', 'The Ancillary Data Button',
                     'This cutout was produced using the Ancillary Data Button, written by Chris Clark, available from' \
-                    + ' https://github.com/Stargrazer82301/AncillaryDataButton/, following proceedures laid out in' \
+                    + ' https://github.com/Stargrazer82301/AncillaryDataButton/, following procedures laid out in' \
                     + ' Clark et al (2018, A&A 609 A37) and Saintonge et al (2018).')
 
         # Construct WCS system, and append to header
