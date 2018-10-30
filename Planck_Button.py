@@ -208,7 +208,7 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
     while query_success==None:
         try:
             query_filename = os.path.join(temp_dir, name+'_Planck_'+bands_dict[band]['wavelength']+'.fits')
-            query_url = SkyView.get_image_list(position_string, bands_dict[band]['band_name'], deedger='_skip_', pixels=str(int((width*3600.0)/pix_size)), radius=astropy.units.Quantity(width, unit='deg'))
+            query_url = SkyView.get_image_list(position_string, bands_dict[band]['band_name'], deedger='_skip_', pixels=int((width*3600.0)/pix_size), radius=astropy.units.Quantity(width, unit='deg'))
             if len(query_url)!=1:
                 pdb.set_trace()
             query_success = True
@@ -255,8 +255,8 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnai
         pix_width_arcsec = 3600.0 * np.abs( np.max( in_wcs.pixel_scale_matrix ) )
         out_img = in_img.copy()
 
-        # Set non-coverage pixels to be nan
-        out_img[ np.where(out_img==0) ] = np.NaN
+        """# Set non-coverage pixels to be nan
+        out_img[ np.where(out_img==0) ] = np.NaN"""
 
         # Calculate sr/pixel
         sr_per_sqarcsec = 2.3504E-11
