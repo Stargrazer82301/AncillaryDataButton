@@ -43,17 +43,17 @@ def Handler(signum, frame):
 
 # Define function to wget and extact Spitzer files
 def Spitzer_wget(tile_url, tile_filename):
-    print 'Acquiring '+tile_url
+    print('Acquiring '+tile_url)
     if os.path.exists(tile_filename):
         os.remove(tile_filename)
     success = False
     while success==False:
         try:
             wget.download(tile_url, out=tile_filename)
-            print 'Successful acquisition of '+tile_url
+            print('Successful acquisition of '+tile_url)
             success = True
         except:
-            print 'Failure! Retrying acquistion of '+tile_url
+            print('Failure! Retrying acquistion of '+tile_url)
             time.sleep(0.1)
             success = False
     os.system('unzip '+tile_filename)
@@ -131,15 +131,15 @@ if __name__ == "__main__":
         dec = dec_list[i]
         time_start = time.time()
         width = 0.25#
-        print 'Processing source '+name
+        print('Processing source '+name)
 
         # Check if source is in list of already-montaged sources
         if name in already_processed:
-            print name+' already processed'
+            print(name+' already processed')
             continue
 
         # Check which, if any, bands already have data
-        print 'Checking existing finalised cutouts for matches to current source'
+        print('Checking existing finalised cutouts for matches to current source')
         bands_dict_req = {}
         for band in bands_dict.keys():
             if name+'_Spitzer_'+bands_dict[band]['band_long']+'.fits.gz' not in os.listdir('/home/sarumandata2/spx7cjc/NESS/Ancillary_Data/Spitzer/Cutouts/'):
@@ -155,14 +155,14 @@ if __name__ == "__main__":
         os.chdir(gal_dir+'Raw')
 
         # Perform query, with error handling
-        print 'Querying Spitzer server'
+        print('Querying Spitzer server')
         query_success = False
         query_fail_count = 0
         while query_success==False:
             if query_fail_count>=10:
                 break
             try:
-                print 'NOTE: Astroquery currently not working with Spitzer; gettings query results using Spitzer API instead'
+                print('NOTE: Astroquery currently not working with Spitzer; gettings query results using Spitzer API instead')
                 """
                 query_obj = Spitzer.query(ra=ra, dec=dec, size=width)
                 """
@@ -175,12 +175,12 @@ if __name__ == "__main__":
                 os.remove(query_filename.replace('.csv','.txt'))
                 query_success = True
             except:
-                print 'Spitzer query failed; reattempting'
+                print('Spitzer query failed; reattempting')
                 query_fail_count += 1
         if not os.path.exists(query_filename):
             query_success=False
         if query_success==False:
-            print 'No Spitzer data for '+name
+            print('No Spitzer data for '+name)
             already_processed_file = open(already_processed_path, 'a')
             already_processed_file.write(name+'\n')
             already_processed_file.close()
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         # Establish if any data was found; if not, skip
         query_in = np.genfromtxt(query_filename, delimiter=',', names=True, dtype=None)
         if query_in.size==0:
-            print 'No Spitzer data for '+name
+            print('No Spitzer data for '+name)
             already_processed_file = open(already_processed_path, 'a')
             already_processed_file.write(name+'\n')
             already_processed_file.close()
@@ -263,7 +263,7 @@ if __name__ == "__main__":
             if sum(1 for line in open(gal_dir+band+'/'+band+'_Overlap_Check.dat'))>3:
                 coverage_bands.append(band)
         if len(coverage_bands)==0:
-            print 'No Spitzer data for '+name
+            print('No Spitzer data for '+name)
             already_processed_file = open(already_processed_path, 'a')
             already_processed_file.write(name+'\n')
             already_processed_file.close()
@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
         # Loop over each band for coaddition
         for band in coverage_bands:
-            print 'Commencing Montaging and SWarping of '+name+'_Spitzer_'+band
+            print('Commencing Montaging and SWarping of '+name+'_Spitzer_'+band)
             os.chdir(gal_dir+band)
             os.mkdir(gal_dir+band+'/Diffs_Temp')
             os.mkdir(gal_dir+band+'/Backsub_Temp')
@@ -286,7 +286,7 @@ if __name__ == "__main__":
             montage_wrapper.commands.mHdr(location_string, width, gal_dir+band+'/'+str(name)+'_HDR', pix_size=pix_size)
 
             # Use Montage wrapper to reproject all fits files to common projection, skipping if none acually overlap
-            print 'Performing reporjections for '+name+'_Spitzer_'+band+' maps'
+            print('Performing reporjections for '+name+'_Spitzer_'+band+' maps')
             location_string = str(ra)+' '+str(dec)
             target_files = []
             proj_fail = 0
@@ -298,7 +298,7 @@ if __name__ == "__main__":
                     os.remove(os.path.join(gal_dir+band,target_file))
                     proj_fail += 1
             if proj_fail==len(target_files):
-                print 'No Spitzer coverage for '+name+' at '+band
+                print('No Spitzer coverage for '+name+' at '+band)
                 continue
 
             # Loop over error maps and copy
@@ -331,7 +331,7 @@ if __name__ == "__main__":
             if mosaic_count>1:
 
                 # Use Montage wrapper to determine appropriate corrections for background matching
-                print 'Determining background corrections for '+name+'_Spitzer_'+band+' maps'
+                print('Determining background corrections for '+name+'_Spitzer_'+band+' maps')
                 montage_wrapper.commands.mImgtbl(gal_dir+band,  gal_dir+band+'/'+band+'_Image_Metadata_Table.dat', corners=True)
                 montage_wrapper.commands.mOverlaps(gal_dir+band+'/'+band+'_Image_Metadata_Table.dat', gal_dir+band+'/'+band+'_Image_Diffs_Table.dat')
                 montage_wrapper.commands.mDiffExec(gal_dir+band+'/'+band+'_Image_Diffs_Table.dat', gal_dir+band+'/'+str(name)+'_HDR', gal_dir+band+'/Diffs_Temp', no_area=True)
@@ -339,7 +339,7 @@ if __name__ == "__main__":
                 montage_wrapper.commands.mBgModel(gal_dir+band+'/'+band+'_Image_Metadata_Table.dat', gal_dir+band+'/'+band+'_Image_Fitting_Table.dat', gal_dir+band+'/'+band+'_Image_Corrections_Table.dat', level_only=True, n_iter=16384)
 
                 # Apply background corrections using Montage subprocess, with timeout handling
-                print 'Applying background corrections to '+name+'_Spitzer_'+band+' maps'
+                print('Applying background corrections to '+name+'_Spitzer_'+band+' maps')
                 mBgExec_fail_count = 0
                 mBgExec_success = False
                 mBgExec_uberfail = False
@@ -369,10 +369,10 @@ if __name__ == "__main__":
 
                     # Handle timeouts and other failures
                     if mBgExec_fail_count>0:
-                        print 'Background matching with Montage has failed '+str(mBgExec_fail_count)+' time(s); reattempting'
+                        print('Background matching with Montage has failed '+str(mBgExec_fail_count)+' time(s); reattempting')
                     if mBgExec_fail==True and mBgExec_success==False and mBgExec_fail_count>=3:
                         mBgExec_uberfail = True
-                        print 'Background matching with Montage has failed 3 times; proceeding directly to co-additon'
+                        print('Background matching with Montage has failed 3 times; proceeding directly to co-additon')
                         try:
                             os.killpg( os.getpgid(mBgExec_sp.pid), 15 )
                         except:
@@ -393,7 +393,7 @@ if __name__ == "__main__":
                 ChrisFuncs.Coadd.LevelFITS(gal_dir+band+'/SWarp_Temp', 'maic.fits', convfile_dir=False)
 
             # Use SWarp to co-add images weighted by their error maps
-            print 'Co-adding '+name+'_Spitzer_'+band+' maps'
+            print('Co-adding '+name+'_Spitzer_'+band+' maps')
             os.chdir(gal_dir+band+'/SWarp_Temp')
             os.system('swarp *_maic.fits -IMAGEOUT_NAME '+name+'_Spitzer_'+band+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -GAIN_KEYWORD DIESPIZERDIE -RESCALE_WEIGHTS N -SUBTRACT_BACK N -RESAMPLE N -VMEM_MAX 4095 -MEM_MAX 4096 -WEIGHT_TYPE MAP_WEIGHT -NTHREADS 4 -VERBOSE_TYPE QUIET')
             Spitzer_SWarp_NaN(name+'_Spitzer_'+band+'_SWarp.fits')
@@ -406,7 +406,7 @@ if __name__ == "__main__":
             if os.path.exists(out_dir+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'.fits.gz'):
                 os.remove(out_dir+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'.fits.gz')
             os.system('gzip '+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'.fits')
-            print 'Completed Montaging and SWarping '+name+'_Spitzer_'+band+' image map'
+            print('Completed Montaging and SWarping '+name+'_Spitzer_'+band+' image map')
 
 
 
@@ -423,7 +423,7 @@ if __name__ == "__main__":
                     unc_hdulist.writeto(gal_dir+'Errors/'+band+'/'+listfile.replace('_munc.fits','_mexp.fits'), clobber=True)
 
             # Use Montage to add exposure time images
-            print 'Co-adding '+name+'_Spitzer_'+band+' error maps'
+            print('Co-adding '+name+'_Spitzer_'+band+' error maps')
             target_files = []
             [ target_files.append(dir_file) for dir_file in os.listdir(gal_dir+'Errors/'+band) if 'mexp.fits' in dir_file ]
             for i in range(0, len(target_files)):
@@ -460,7 +460,7 @@ if __name__ == "__main__":
             if os.path.exists(out_dir+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'_Error.fits.gz'):
                 os.remove(out_dir+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'_Error.fits.gz')
             os.system('gzip '+name+'_Spitzer_'+bands_dict_req[band]['band_long']+'_Error.fits')
-            print 'Completed Montaging '+name+'_Spitzer_'+band+' error map'
+            print('Completed Montaging '+name+'_Spitzer_'+band+' error map')
 
 
 
@@ -477,7 +477,7 @@ if __name__ == "__main__":
         time_file = open( os.path.join('/'.join(in_dir.split('/')[:-2]),'Estimated_Completion_Time.txt'), 'w')
         time_file.write(time_est)
         time_file.close()
-        print 'Estimated completion time: '+time_est
+        print('Estimated completion time: '+time_est)
 
 # Jubilate
-print 'All done!'
+print('All done!')
