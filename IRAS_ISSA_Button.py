@@ -1,5 +1,6 @@
 # Import smorgasbord
 import os
+import sys
 import multiprocessing as mp
 import numpy as np
 import astropy.io.votable
@@ -9,21 +10,21 @@ import aplpy
 import gc
 import re
 import shutil
-import copy
 import wget
+import urllib.request
 import pdb
 import time
 import datetime
-import ChrisFuncs
-
-
+import joblib
+from ChrisFuncs import TimeEst
+from ChrisFuncs.Fits import FitsHeader
 
 
 
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False):
+def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False, montage_path=None):
     """
-    Function to generate standardised cutouts of IRAS-IRIS observations.
+    Function to generate standardised cutouts of IRAS-ISSA observations from the calibrated plates hosted on IRSA.
 
     Arguments
         ra: {float, sequence of float}
@@ -43,19 +44,36 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 A string giving the path to the directory where the output FITS files will be placed. If not provided,
                 files will simply be written to the current working directory.
         temp_dir: str, optional
-                A string giving the path to be used as a temporary working directory by IRIS_Button. If not provided,
+                A string giving the path to be used as a temporary working directory by ISSA_Button. If not provided,
                 a temporary directory will be created inside the output directory.
         replace: bool, optional
-                If False, IRIS_Button will search the output directory for any pre-existing output FITS files from
+                If False, ISSA_Button will search the output directory for any pre-existing output FITS files from
                 previous runs of the function, and will not bother repeat creating these maps (making it easy to resume
-                processing a large number of targets from an interruption. If True, IRIS_Button will produce maps for
+                processing a large number of targets from an interruption. If True, ISSA_Button will produce maps for
                 all input targets, regardless of whether maps for these targets already exist in the output directory.
         flux: bool, optional
                 If True, output maps will be in flux density units of Jy/pix. If false, output maps will be in surface
                 brightness units of MJy/sr.
         thumbnails: bool, optional
                 If True, JPG thumbnail images of the generated maps will also be proced and placed in out_dir.
+        montage_path
+                This function requires Montage to be installed. If your Montage commands are found in a location that
+                the montage_wapper package will not find by default, provide a string here that gives the path to the
+                directory the commands are found in.
     """
+
+    # If Montage commands directory provided, append it to path
+    try:
+        if montage_path != None:
+            sys.path.append(montage_path)
+            os.environ['PATH'] = os.environ['PATH'] + ':' + montage_path
+        import montage_wrapper
+    except:
+        if montage_path != None:
+            sys.path.append(montage_path)
+            os.environ['PATH'] = os.environ['PATH'] + ':' + montage_path
+        import montage_wrapper
+    montage_wrapper = montage_wrapper
 
     # Make sure input values are in list format, and sort out variable names for rest of function
     if not hasattr(ra, '__iter__'):
@@ -123,11 +141,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         os.mkdir(temp_dir)
 
     # Define dictionary of band properties
-    bands_dict = {'12':{'band_name':'IRIS  12','wavelength':'12','pix_size':90.0},
-                  '25':{'band_name':'IRIS  25','wavelength':'25','pix_size':90.0},
-                  '60':{'band_name':'IRIS  60','wavelength':'60','pix_size':90.0},
-                  '100':{'band_name':'IRIS 100','wavelength':'100','pix_size':90.0}}
-
+    bands_dict = {'12':{'band_name':'ISSA  12','wavelength':'12','band_num':'1','pix_size':90.0},
+                  '25':{'band_name':'ISSA  25','wavelength':'25','band_num':'2','pix_size':90.0},
+                  '60':{'band_name':'ISSA  60','wavelength':'60','band_num':'3','pix_size':90.0},
+                  '100':{'band_name':'ISSA 100','wavelength':'100','band_num':'4','pix_size':90.0}}
 
     # Record time taken
     time_list = [time.time()]
@@ -143,24 +160,24 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if not replace:
             bands_done = 0
             for band in bands_dict.keys():
-                if os.path.exists(os.path.join(out_dir,name+'_IRIS_'+bands_dict[band]['wavelength']+'.fits')):
+                if os.path.exists(os.path.join(out_dir,name+'_ISSA_'+bands_dict[band]['wavelength']+'.fits')):
                     bands_done += 1
 
                 # Also check for null files, indicated data not available for a givne band
-                elif os.path.exists(os.path.join(out_dir,'.'+name+'_IRIS_'+bands_dict[band]['wavelength']+'.null')):
+                elif os.path.exists(os.path.join(out_dir,'.'+name+'_ISSA_'+bands_dict[band]['wavelength']+'.null')):
                     bands_done += 1
 
             # If this source has already been processed in all bands, skip it
             if bands_done == len(bands_dict.keys()):
-                print('IRAS-IRIS data for '+name+ ' already generated; continuing to next target')
+                print('IRAS-ISSA data for '+name+ ' already generated; continuing to next target')
                 continue
-        print('Processing IRAS-IRIS data for target '+name)
+        print('Processing IRAS-ISSA data for target '+name)
 
-        # In parallel, retrieve IRAS-IRIS data in each band from NASA SkyView
+        # Retrieve IRAS-ISSA data in each band from IRSA (this can be run in parallel, but that actually makes the bulk download slower)
         pool = mp.Pool(processes=4)
         for band in bands_dict.keys():
-            #pool.apply_async( IRIS_SkyView, args=(name, ra, dec, width, band, bands_dict, temp_dir,) )
-            IRIS_SkyView(name, ra, dec, width, band, bands_dict, temp_dir)
+            pool.apply_async(ISSA_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
+            #ISSA_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
         pool.close()
         pool.join()
 
@@ -168,17 +185,17 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         pool = mp.Pool(processes=4)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            #pool.apply_async( IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,) )
-            IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
+            pool.apply_async(ISSA_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
+            #ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
         pool.close()
         pool.join()
 
         # Clean memory, and return timings (if more than one target being processed)
         gc.collect()
         time_list.append(time.time())
-        time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
+        time_est = TimeEst(time_list, len(name_list))
         if len(name) > 1:
-            print('Estimated time until IRAS-IRIS data completed for all targets: '+time_est)
+            print('Estimated time until IRAS-ISSA data completed for all targets: '+time_est)
 
     # Report completion
     try:
@@ -186,68 +203,115 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     except:
         pdb.set_trace()
     gc.collect()
-    print('All available IRAS-IRIS data acquired for all targets')
+    print('All available IRAS-ISSA data acquired for all targets')
 
 
 
+# Define function to retrieve, select, and mosaic IRAS-ISSA data from IRSA
+def ISSA_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=None):
+
+    # If Montage commands directory provided, append it to path
+    try:
+        import montage_wrapper
+    except:
+        sys.path.append(montage_path)
+        os.environ['PATH'] = os.environ['PATH'] + ':' + montage_path
+        import montage_wrapper
+
+    # Generate list of all ISSA plate fields in this band (which take form iYYYBXh0.fits, where YYY is a number between 001 and 430, and X is the field between 1 and 4)
+    issa_url = 'https://irsa.ipac.caltech.edu/data/ISSA/ISSA_complete_v2/'
+    issa_fields = np.arange(1,341).astype(str)
+    issa_fields = [''.join(['i',field.zfill(3),'bXh0']) for field in issa_fields]
+
+    # Check if a folder for the raw ISSA plates exists in the temporary directory; if not, create it
+    print('Ensuring all raw '+bands_dict[band]['wavelength']+'um IRAS-ISSA plates are available')
+    band = bands_dict[band]['wavelength']
+    raw_dir = os.path.join(temp_dir,'Raw',band)
+    if not os.path.exists(raw_dir):
+        os.makedirs(raw_dir)
+
+    # Look to see if all ISSA fields for this band are already present in the temporary directory; if not, wget them
+    wget_list = []
+    for issa_field in np.random.permutation(issa_fields):
+        issa_ref_file = issa_field.replace('X',bands_dict[band]['band_num'])+'.fit'
+        issa_ref_path = os.path.join(raw_dir,issa_ref_file)
+        if not os.path.exists(issa_ref_path):
+            wget_list.append([issa_url+issa_ref_file,issa_ref_path])
+    if len(wget_list) > 0:
+        print('Downloading raw '+bands_dict[band]['wavelength']+'um IRAS-ISSA plates (note that this will entail downloding up to ~4GB of data)')
+        if mp.current_process().name == 'MainProcess':
+            joblib.Parallel( n_jobs=mp.cpu_count()-1 )\
+                           ( joblib.delayed( wget.download )\
+                           ( wget_list[w][0], wget_list[w][1] )\
+                           for w in range(len(wget_list)) )
+        else:
+            for w in range(len(wget_list)):
+                os.system('curl '+wget_list[w][0]+' -o '+'"'+wget_list[w][1]+'"')
 
 
+    # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
+    mImgtbl_tablepath = os.path.join(raw_dir,'ISSA_'+band+'_Metadata_Table.tbl')
+    if not os.path.exists(mImgtbl_tablepath):
+        print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-ISSA plates')
+        montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
 
-
-# Define function to query for, and retrieve, IRAS-IRIS data from NASA SkyView
-def IRIS_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
-    print('Querying for IRAS-IRIS '+bands_dict[band]['wavelength']+'um data for '+name+' from NASA SkyView')
+    # Now that we know we have data, set up processing for this source in particular
+    print('Inspecting IRAS-ISSA '+bands_dict[band]['wavelength']+'um data for '+name)
+    ra, dec, width = float(ra), float(dec), float(width)
     position_string = str(ra)+' '+str(dec)
-    query_success = None
     pix_size = bands_dict[band]['pix_size']
 
-    # Perform query
-    while query_success==None:
-        try:
-            query_filename = os.path.join(temp_dir, name+'_IRAS-IRIS_'+bands_dict[band]['wavelength']+'.fits')
-            query_url = SkyView.get_image_list(position_string, bands_dict[band]['band_name'], deedger='_skip_', pixels=str(int((width*3600.0)/pix_size)), radius=astropy.units.Quantity(width, unit='deg'))
-            if len(query_url)!=1:
-                pdb.set_trace()
-            query_success = True
-        except:
-            query_success = False
+    # Find which plates have coverage over our target region
+    mCoverageCheck_tablepath = os.path.join(raw_dir,u'ISSA_'+band+'_Coverage_Table.tbl')
+    if os.path.exists(mCoverageCheck_tablepath):
+        os.remove(mCoverageCheck_tablepath)
+    montage_wrapper.mCoverageCheck(mImgtbl_tablepath, mCoverageCheck_tablepath, ra=ra, dec=dec, mode='box', width=width)
 
-    # Retrieve and verify data
-    if query_success:
-        print('Retrieving identified IRAS-IRIS '+bands_dict[band]['wavelength']+'um data for '+name)
-        IRIS_wget(str(query_url[0]), query_filename)
-        try:
-            astropy.io.fits.info(query_filename)
-        except Exception as exception:
-            if exception.message=='Empty or corrupt FITS file':
-                pdb.set_trace()
-            else:
-                pdb.set_trace()
+    # Read in coveage tables to identify what plates we need, and reproject them
+    mCoverageCheck_table = np.genfromtxt(mCoverageCheck_tablepath, skip_header=3, dtype=None)
+    reproj_dir = os.path.join(temp_dir,'Reproject',band)
+    if not os.path.exists(reproj_dir):
+        os.makedirs(reproj_dir)
+    raw_paths = [str(mCoverageCheck_table['f36'][i],'utf-8') for i in range(len(mCoverageCheck_table['f36']))]
+    reproj_paths = [raw_paths[i].replace(raw_dir,reproj_dir) for i in range(len(raw_paths))]
+    mHdr_path = os.path.join(reproj_dir, name+'_'+band+'.hdr')
+    montage_wrapper.mHdr(position_string, width, mHdr_path, pix_size=pix_size)
+    montage_wrapper.reproject(raw_paths, reproj_paths, header=mHdr_path, exact_size=True)
 
-    # If no data available, generate null file and report failure
-    if not query_success:
-        os.system('touch '+os.path.join(temp_dir,'.'+name+'_IRAS-IRIS_'+bands_dict[band]['wavelength']+'.null'))
-        print('No IRAS-IRIS '+bands_dict[band]['wavelength']+' data for '+name)
-        pdb.set_trace()
+    # Now mosaic the reprojected images
+    mosaic_list = []
+    [mosaic_list.append(astropy.io.fits.getdata(reproj_path)) for reproj_path in reproj_paths]
+    mosaic_array = np.array(mosaic_list)
+    mosaic_img = np.nanmean(mosaic_array, axis=0)
+    mosaic_hdr = FitsHeader(ra, dec, width, pix_size)
+
+    # Check that target coords have coverage in mosaic
+    mosaic_wcs = astropy.wcs.WCS(mosaic_hdr)
+    mosaic_centre = mosaic_wcs.all_world2pix([[ra]], [[dec]], 0, ra_dec_order=True)
+    mosaic_i, mosaic_j = mosaic_centre[1][0], mosaic_centre[0][0]
+    if np.isnan(mosaic_img[int(np.round(mosaic_i)),int(np.round(mosaic_j))]):
+        os.system('touch '+os.path.join(temp_dir,'.'+name+'_IRAS-ISSA_'+band+'.null'))
+        print('No IRAS-ISSA '+band+'um data for '+name)
+
+    # If mosaic is good, write it to temporary directory
+    else:
+        astropy.io.fits.writeto(os.path.join(temp_dir,name+'_IRAS-ISSA_'+band+'.fits'), data=mosaic_img, header=mosaic_hdr, overwrite=True)
 
 
 
-
-
-
-# Define function to finalise IRAS-IRIS image of a given source in a given band
-def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
+# Define function to finalise IRAS-ISSA image of a given source in a given band
+def ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
     wavelength = band_dict['wavelength']
-    print('Generating final standardised map of IRAS-IRIS '+wavelength+'um data for '+name)
+    print('Generating final standardised map of IRAS-ISSA '+wavelength+'um data for '+name)
 
     # If null file exists for this target in this band, copy it to final output directory
-    if os.path.exists(os.path.join(temp_dir,'.'+name+'_IRAS-IRIS_'+band_dict['wavelength']+'.null')):
-        shutil.copy(os.path.join(temp_dir,'.'+name+'_IRAS-IRIS_'+band_dict['wavelength']+'.null'),
-                  os.path.join(out_dir,'.'+name+'_IRAS-IRIS_'+band_dict['wavelength']+'.null'))
+    if os.path.exists(os.path.join(temp_dir,'.'+name+'_IRAS-ISSA_'+band_dict['wavelength']+'.null')):
+        shutil.copy(os.path.join(temp_dir,'.'+name+'_IRAS-ISSA_'+band_dict['wavelength']+'.null'),
+                  os.path.join(out_dir,'.'+name+'_IRAS-ISSA_'+band_dict['wavelength']+'.null'))
     else:
 
         # Read in map
-        in_img, in_hdr = astropy.io.fits.getdata(os.path.join(temp_dir,name+'_IRAS-IRIS_'+wavelength+'.fits'), header=True)
+        in_img, in_hdr = astropy.io.fits.getdata(os.path.join(temp_dir,name+'_IRAS-ISSA_'+wavelength+'.fits'), header=True)
         in_wcs = astropy.wcs.WCS(in_hdr)
         pix_width_arcsec = 3600.0 * np.abs( np.max( in_wcs.pixel_scale_matrix ) )
         out_img = in_img.copy()
@@ -272,7 +336,7 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
         out_hdr.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
         out_hdr.set('SIGUNIT', pix_unit, 'Unit of the map')
         out_hdr.set('TELESCOP', 'IRAS', 'Telescope that made this observation')
-        out_hdr.set('PIPELINE', 'IRIS (Improved Reprocessing of the IRAS Survey)', 'Data products from which this cutout was produced')
+        out_hdr.set('PIPELINE', 'ISSA (IRAS Sky Survey Atlas)', 'Data products from which this cutout was produced')
         out_hdr.set('WVLNGTH', wavelength+'um', 'Wavelength of observation')
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
         out_hdr.set('SOFTWARE', 'The Ancillary Data Button',
@@ -291,18 +355,18 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
             out_hdr.append(card)
 
         # Write output FITS file
-        astropy.io.fits.writeto(os.path.join(out_dir,name+'_IRAS-IRIS_'+wavelength+'.fits'), data=out_img, header=out_hdr, overwrite=True)
+        astropy.io.fits.writeto(os.path.join(out_dir,name+'_IRAS-ISSA_'+wavelength+'.fits'), data=out_img, header=out_hdr, overwrite=True)
 
         # Make thumbnail image of cutout
         if thumbnails:
             try:
-                thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-IRIS_'+wavelength+'.fits')
+                thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-ISSA_'+wavelength+'.fits')
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
                 thumb_out.tick_labels.hide()
                 thumb_out.ticks.hide()
                 thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
-                thumb_out.save(os.path.join(out_dir,name+'_IRAS-IRIS_'+wavelength+'.jpg'), dpi=125)
+                thumb_out.save(os.path.join(out_dir,name+'_IRAS-ISSA_'+wavelength+'.jpg'), dpi=125)
                 thumb_out.close()
             except:
                 print('Failed making thumbnail for '+name)
@@ -320,7 +384,7 @@ def Handler(signum, frame):
 
 
 # Define function to wget DSS tiles
-def IRIS_wget(tile_url, tile_filename):
+def ISSA_wget(tile_url, tile_filename):
     if os.path.exists(tile_filename):
         os.remove(tile_filename)
     success = False
