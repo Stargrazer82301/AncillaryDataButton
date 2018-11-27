@@ -185,8 +185,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         pool = mp.Pool(processes=4)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            pool.apply_async(IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
-            #IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
+            #pool.apply_async(IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
+            IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
         pool.close()
         pool.join()
 
@@ -201,7 +201,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     try:
         shutil.rmtree(temp_dir, ignore_errors=True)
     except:
-        pdb.set_trace()
+        raise Exception('Failed to delete temporary folder')
     gc.collect()
     print('All available IRAS-IRIS data acquired for all targets')
 
@@ -360,6 +360,7 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
         # Make thumbnail image of cutout
         if thumbnails:
             try:
+                print('Generating thumbnail image of IRAS-IRIS '+wavelength+'um data for '+name)
                 thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-IRIS_'+wavelength+'.fits')
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
@@ -369,8 +370,7 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
                 thumb_out.save(os.path.join(out_dir,name+'_IRAS-IRIS_'+wavelength+'.jpg'), dpi=125)
                 thumb_out.close()
             except:
-                print('Failed making thumbnail for '+name)
-                pdb.set_trace()
+                raise Exception('Failed making thumbnail for '+name)
 
         # Clean memory before finishing
         gc.collect()

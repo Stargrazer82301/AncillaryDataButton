@@ -173,7 +173,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 continue
         print('Processing IRAS-ISSA data for target '+name)
 
-        # Retrieve IRAS-ISSA data in each band from IRSA (this can be run in parallel, but that actually makes the bulk download slower)
+        # In parallel, retrieve IRAS-ISSA data in each band from IRSA
         pool = mp.Pool(processes=4)
         for band in bands_dict.keys():
             pool.apply_async(ISSA_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
@@ -181,12 +181,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         pool.close()
         pool.join()
 
-        # In parallel, generate final standardised maps for each band
+        # Generate final standardised maps for each band (this can be run in parallel, but that seems to cause thumbnail problems)
         pool = mp.Pool(processes=4)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            pool.apply_async(ISSA_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
-            #ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
+            #pool.apply_async(ISSA_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
+            ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
         pool.close()
         pool.join()
 
@@ -199,9 +199,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
     # Report completion
     try:
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
     except:
-        pdb.set_trace()
+        raise Exception('Failed to delete temporary folder')
     gc.collect()
     print('All available IRAS-ISSA data acquired for all targets')
 
@@ -360,6 +360,7 @@ def ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
         # Make thumbnail image of cutout
         if thumbnails:
             try:
+                print('Generating thumbnail image of IRAS-ISSA '+wavelength+'um data for '+name)
                 thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-ISSA_'+wavelength+'.fits')
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
@@ -369,8 +370,7 @@ def ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
                 thumb_out.save(os.path.join(out_dir,name+'_IRAS-ISSA_'+wavelength+'.jpg'), dpi=125)
                 thumb_out.close()
             except:
-                print('Failed making thumbnail for '+name)
-                pdb.set_trace()
+                raise Exception('Failed making thumbnail for '+name)
 
         # Clean memory before finishing
         gc.collect()
