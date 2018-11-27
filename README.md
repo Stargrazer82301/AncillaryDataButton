@@ -9,4 +9,5 @@ I'm currently updating this reposotory, so that a standardised functional form i
 So far only some telescopes have had their scripts updated to this new format. The older scripts (found in the NESS folder) follow this workflow:
  - First, run TelescopeName_Query_Mosaic.py, which will query the online archive for the telescope to find out what data is available, download that data, then mosaic it. 
  - Second, run TelescopeName_Final_Map_Generator.py, which will take the mosaics, calibrate their pixel values to Jy/pix, and generate a standardised header. 
+ 
 For both types of script, the user needs to alter script to specify a target catalogue (a csv file with columns giving source name, right ascension, and declination), and input/output directories (plus the path to SWarp, for scripts that use it). The scripts in the NESS folder are set up to produce ancillary data for the NESS survey, assuming my computer's directory structure.
