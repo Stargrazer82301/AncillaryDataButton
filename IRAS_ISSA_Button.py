@@ -1,18 +1,19 @@
 # Import smorgasbord
+import pdb
 import os
 import sys
 import multiprocessing as mp
 import numpy as np
 import astropy.io.votable
 import astropy.coordinates
-from astroquery.skyview import SkyView
+import reproject
+import warnings
+warnings.filterwarnings("ignore")
 import aplpy
 import gc
 import re
 import shutil
 import wget
-import urllib.request
-import pdb
 import time
 import datetime
 import joblib
@@ -252,13 +253,11 @@ def ISSA_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
     # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
     mImgtbl_tablepath = os.path.join(raw_dir,'ISSA_'+band+'_Metadata_Table.tbl')
     if not os.path.exists(mImgtbl_tablepath):
-        print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-ISSA plates')
         montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
 
     # Now that we know we have data, set up processing for this source in particular
-    print('Inspecting IRAS-ISSA '+bands_dict[band]['wavelength']+'um data for '+name)
+    print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-ISSA plates with '+name)
     ra, dec, width = float(ra), float(dec), float(width)
-    position_string = str(ra)+' '+str(dec)
     pix_size = bands_dict[band]['pix_size']
 
     # Find which plates have coverage over our target region
@@ -267,16 +266,39 @@ def ISSA_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         os.remove(mCoverageCheck_tablepath)
     montage_wrapper.mCoverageCheck(mImgtbl_tablepath, mCoverageCheck_tablepath, ra=ra, dec=dec, mode='box', width=width)
 
-    # Read in coveage tables to identify what plates we need, and reproject them
-    mCoverageCheck_table = np.genfromtxt(mCoverageCheck_tablepath, skip_header=3, dtype=None)
+    # Read in coveage tables to identify what plates we need
+    print('Reprojecting IRAS-ISSA '+bands_dict[band]['wavelength']+'um plates that cover '+name)
+    mCoverageCheck_table = np.genfromtxt(mCoverageCheck_tablepath, skip_header=3, dtype=None, encoding=None)
     reproj_dir = os.path.join(temp_dir,'Reproject',band)
     if not os.path.exists(reproj_dir):
         os.makedirs(reproj_dir)
-    raw_paths = [str(mCoverageCheck_table['f36'][i],'utf-8') for i in range(len(mCoverageCheck_table['f36']))]
+    raw_paths = [str(mCoverageCheck_table['f36'][i]) for i in range(len(mCoverageCheck_table['f36']))]
     reproj_paths = [raw_paths[i].replace(raw_dir,reproj_dir) for i in range(len(raw_paths))]
-    mHdr_path = os.path.join(reproj_dir, name+'_'+band+'.hdr')
-    montage_wrapper.mHdr(position_string, width, mHdr_path, pix_size=pix_size)
-    montage_wrapper.reproject(raw_paths, reproj_paths, header=mHdr_path, exact_size=True)
+    reproj_hdr = FitsHeader(ra, dec, width, pix_size)
+
+    # Reproject identified plates in turn (dealing with possible corrupt downloads, and stupid unecessary third axis, grrr)
+    for i in range(len(raw_paths)):
+        raw_path, reproj_path = raw_paths[i], reproj_paths[i]
+        try:
+            raw_img, raw_hdr = astropy.io.fits.getdata(raw_path, header=True, memmap=False)
+        except:
+            raw_url = issa_url + raw_path.split('/')[-1]
+            os.system('curl '+raw_url+' -o '+'"'+raw_path+'"')
+            raw_img, raw_hdr = astropy.io.fits.getdata(raw_path, header=True, memmap=False)
+        raw_hdr.set('NAXIS', value=2)
+        raw_hdr.remove('NAXIS3')
+        raw_hdr.remove('CRVAL3')
+        raw_hdr.remove('CRPIX3')
+        raw_hdr.remove('CTYPE3')
+        raw_hdr.remove('CDELT3')
+        raw_img = raw_img[0,:,:]
+        raw_hdu = astropy.io.fits.PrimaryHDU(data=raw_img, header=raw_hdr)
+        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr)[0]
+        astropy.io.fits.writeto(reproj_path, data=reproj_img, header=reproj_hdr, overwrite=True)
+        del(raw_hdu)
+        del(raw_img)
+        del(raw_hdr)
+        gc.collect()
 
     # Now mosaic the reprojected images
     mosaic_list = []
@@ -359,18 +381,15 @@ def ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
 
         # Make thumbnail image of cutout
         if thumbnails:
-            try:
-                print('Generating thumbnail image of IRAS-ISSA '+wavelength+'um data for '+name)
-                thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-ISSA_'+wavelength+'.fits')
-                thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
-                thumb_out.axis_labels.hide()
-                thumb_out.tick_labels.hide()
-                thumb_out.ticks.hide()
-                thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
-                thumb_out.save(os.path.join(out_dir,name+'_IRAS-ISSA_'+wavelength+'.jpg'), dpi=125)
-                thumb_out.close()
-            except:
-                raise Exception('Failed making thumbnail for '+name)
+            print('Generating thumbnail image of IRAS-ISSA '+wavelength+'um data for '+name)
+            thumb_out = aplpy.FITSFigure(out_dir+name+'_IRAS-ISSA_'+wavelength+'.fits')
+            thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
+            thumb_out.axis_labels.hide()
+            thumb_out.tick_labels.hide()
+            thumb_out.ticks.hide()
+            thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
+            thumb_out.save(os.path.join(out_dir,name+'_IRAS-ISSA_'+wavelength+'.jpg'), dpi=125)
+            thumb_out.close()
 
         # Clean memory before finishing
         gc.collect()
