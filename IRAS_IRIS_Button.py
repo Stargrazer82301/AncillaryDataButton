@@ -143,7 +143,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
     # Define dictionary of band properties
     bands_dict = {'12':{'band_name':'IRIS  12','wavelength':'12','band_num':'1','pix_size':90.0},
-                  '25':{'band_name':'IRIS  25','wavelength':'25','band_num':'2','pix_size':90.0}},
+                  '25':{'band_name':'IRIS  25','wavelength':'25','band_num':'2','pix_size':90.0},
                   '60':{'band_name':'IRIS  60','wavelength':'60','band_num':'3','pix_size':90.0},
                   '100':{'band_name':'IRIS 100','wavelength':'100','band_num':'4','pix_size':90.0}}
 
@@ -293,7 +293,8 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         raw_hdr.remove('CTYPE3')
         raw_hdr.remove('CDELT3')
         raw_hdu = astropy.io.fits.PrimaryHDU(data=raw_img, header=raw_hdr)
-        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr)[0]
+        reproj_parallel = mp.current_process().name == 'MainProcess'
+        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr, parallel=reproj_parallel)[0]
         astropy.io.fits.writeto(reproj_path, data=reproj_img, header=reproj_hdr, overwrite=True)
         del(raw_hdu)
         del(raw_img)
