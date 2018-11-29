@@ -183,8 +183,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # Retrieve IRAS-IRIS data in each band from IRSA (this can be run in parallel, but that actually makes the bulk download slower)
         pool_query = mp.Pool(processes=4)
         for band in bands_dict.keys():
-            pool_query.apply_async(IRIS_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
-            #IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
+            #pool_query.apply_async(IRIS_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
+            IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
         pool_query.close()
         pool_query.join()
 
@@ -228,7 +228,7 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
 
     # Generate list of all IRIS plate fields in this band (which take form iYYYBXh0.fits, where YYY is a number between 001 and 430, and X is the field between 1 and 4)
     iris_url = 'https://irsa.ipac.caltech.edu/data/IRIS/images/'
-    iris_fields = np.arange(1,341).astype(str)
+    iris_fields = np.arange(1,431).astype(str)
     iris_fields = [''.join(['I',field.zfill(3),'BXH0']) for field in iris_fields]
 
     # Check if a folder for the raw IRIS plates exists in the temporary directory; if not, create it
@@ -256,7 +256,6 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
             for w in range(len(wget_list)):
                 os.system('curl '+wget_list[w][0]+' -o '+'"'+wget_list[w][1]+'"')
 
-
     # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
     mImgtbl_tablepath = os.path.join(raw_dir,'IRIS_'+band+'_Metadata_Table.tbl')
     if not os.path.exists(mImgtbl_tablepath):
@@ -273,9 +272,13 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         os.remove(mCoverageCheck_tablepath)
     montage_wrapper.mCoverageCheck(mImgtbl_tablepath, mCoverageCheck_tablepath, ra=ra, dec=dec, mode='box', width=width)
 
-    # Read in coveage tables to identify what plates we need
+    # Read in coveage tables to identify what plates we need; if no coverage, write null output file and stop here
     print('Reprojecting IRAS-IRIS '+bands_dict[band]['wavelength']+'um plates that cover '+name)
     mCoverageCheck_table = np.genfromtxt(mCoverageCheck_tablepath, skip_header=3, dtype=None, encoding=None)
+    if len(mCoverageCheck_table) == 0:
+        os.system('touch '+os.path.join(temp_dir,'.'+name+'_IRAS-IRIS_'+band+'.null'))
+        print('No IRAS-IRIS '+band+'um data for '+name)
+        return
     reproj_dir = os.path.join(temp_dir,'Reproject',band)
     if not os.path.exists(reproj_dir):
         os.makedirs(reproj_dir)
@@ -299,8 +302,7 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         raw_hdr.remove('CTYPE3')
         raw_hdr.remove('CDELT3')
         raw_hdu = astropy.io.fits.PrimaryHDU(data=raw_img, header=raw_hdr)
-        reproj_parallel = mp.current_process().name == 'MainProcess'
-        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr, parallel=reproj_parallel)[0]
+        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr, parallel=False)[0]
         astropy.io.fits.writeto(reproj_path, data=reproj_img, header=reproj_hdr, overwrite=True)
         del(raw_hdu)
         del(raw_img)
@@ -313,6 +315,9 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
     mosaic_array = np.array(mosaic_list)
     mosaic_img = np.nanmean(mosaic_array, axis=0)
     mosaic_hdr = FitsHeader(ra, dec, width, pix_size)
+
+    """# Write finished mosaic to file
+    astropy.io.fits.writeto(os.path.join(temp_dir,name+'_IRAS-IRIS_'+band+'.fits'), data=mosaic_img, header=mosaic_hdr, overwrite=True)"""
 
     # Check that target coords have coverage in mosaic
     mosaic_wcs = astropy.wcs.WCS(mosaic_hdr)
@@ -400,7 +405,6 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
 
         # Clean memory before finishing
         gc.collect()
-        print('blarp')
 
 
 
