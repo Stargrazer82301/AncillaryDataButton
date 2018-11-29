@@ -83,19 +83,24 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     del(width)
 
     # If no names provided, use coordinates to generate standardised names as per IAU catalogue convention
-    if name == None:
-        name = []
-        for i in range(len(ra_list)):
-            coord = astropy.coordinates.SkyCoord(str(ra_list[i])+'d '+str(dec_list[i])+'d')
-            name_coord = re.sub('[hmsdms. ]', ' ', coord.to_string('hmsdms'))
-            name_coord = name_coord.split(' ')
-            name_coord[3] = name_coord[3][:min(2,len(name_coord[3]))]
-            name_coord[8] = name_coord[8][:min(2,len(name_coord[8]))]
-            name_coord = 'J'+''.join(name_coord)
-            name.append(re.sub('[hmsdms. ]', ' ', coord.to_string('hmsdms')))
+    if not hasattr(name, '__iter__'):
+        if (name == None):
+            name = []
+            for i in range(len(ra_list)):
+                coord = astropy.coordinates.SkyCoord(str(ra_list[i])+'d '+str(dec_list[i])+'d')
+                name_coord = re.sub('[hmsdms. ]', ' ', coord.to_string('hmsdms'))
+                name_coord = name_coord.split(' ')
+                name_coord[3] = name_coord[3][:min(2,len(name_coord[3]))]
+                name_coord[8] = name_coord[8][:min(2,len(name_coord[8]))]
+                name_coord = 'J'+''.join(name_coord)
+                name.append(re.sub('[hmsdms. ]', ' ', coord.to_string('hmsdms')))
 
-    # If only one name provided, stick it into an array
-    name_list = np.array([name])
+        # If only one name provided, stick it into an array
+        name_list = np.array([name])
+
+    # If a sequence of names is provided, make sure it's in array format
+    else:
+        name_list = np.array(copy.deepcopy(name))
     del(name)
 
     # Do final check that all input sequences are the right length
