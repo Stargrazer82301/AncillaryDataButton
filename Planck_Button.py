@@ -99,9 +99,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # If only one name provided, stick it into an array
         name_list = np.array([name])
 
-    # If a sequence of names is provided, make sure it's in array format
+    # If a sequence of names is provided, make sure it's in array format (and stop single names becoming zero-dim array)
     else:
         name_list = np.array(copy.deepcopy(name))
+        if name_list.shape == ():
+            name_list = np.array([name_list.tolist()])
     del(name)
 
     # Do final check that all input sequences are the right length
