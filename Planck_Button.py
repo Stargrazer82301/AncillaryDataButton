@@ -57,6 +57,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 If True, JPG thumbnail images of the generated maps will also be proced and placed in out_dir.
     """
 
+
     # Make sure input values are in list format, and sort out variable names for rest of function
     if not hasattr(ra, '__iter__'):
         ra = [ra]
@@ -162,6 +163,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # If this source has already been processed in all bands, skip it
             if bands_done == len(bands_dict.keys()):
                 print('Planck data for '+name+ ' already generated; continuing to next target')
+                time_list.append(time_list)
                 continue
         print('Processing Planck data for target '+name)
 
@@ -352,6 +354,7 @@ def Planck_wget(tile_url, tile_filename):
         except:
             time.sleep(0.1)
             success = False
+
 
 
 # Define function to provide appropriate padding for FITS header entires
