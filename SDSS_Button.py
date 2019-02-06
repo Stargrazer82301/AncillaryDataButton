@@ -42,6 +42,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         width: {float, sequence of float}
                 A sequence giving the desired width of the cutout square for each target, in decimal degrees.
                 Alternatively, if you're only interested in one target, a single width value can be given here.
+
+    Keyword arguments
         name: {str, sequence of str}, optional
                 A sequence giving the name of each target; if you're only interested in one target, a
                 single name can be given here. If not provided, a name is constructed automatrically from the target
@@ -244,6 +246,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 dl_pool.close()
                 dl_pool.join()
                 dl_complete = True
+                signal.alarm(0)
             except:
                 dl_fail_count += 1
                 gc.collect()
@@ -298,6 +301,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 pool.close()
                 pool.join()
                 complete = True
+                signal.alarm(0)
             except:
                 gc.collect()
                 if os.path.exists(os.path.join(input_dir,'Montage_Temp')):
