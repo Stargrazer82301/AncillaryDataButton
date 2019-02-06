@@ -209,8 +209,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
 
 
-
-
 # Define function to query for, and retrieve, Planck data from NASA SkyView
 def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
     print('Querying for Planck '+bands_dict[band]['wavelength']+'um data for '+name+' from NASA SkyView')

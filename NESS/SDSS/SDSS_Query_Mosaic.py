@@ -27,26 +27,26 @@ import ChrisFuncs
 
 
 
-## Define a timeout handler
-#def Handler(signum, frame):
-#    raise Exception("Timout!")
-#
-## Define function to check if a list of SDSS DR12 URL correspond to a primary fields, and return only those that are
-#def SDSS_Primary_Check(urls, index):
-#    urls_pri = []
-#    for url in urls:
-#        run = url.split('/')[9].lstrip('0')
-#        camcol = url.split('/')[10].lstrip('0')
-#        field = url.split('/')[11].split('.')[0].split('-')[4].lstrip('0')
-#        check_string = run+' '+camcol+' '+field
-#        if check_string in index:
-#            urls_pri.append(url)
-#    return urls_pri
-#
-## Define function to consturct URL for a given SDSS field
-#def SDSS_URL(run, camcol, field, band):
-#    sdss_url = 'http://data.sdss3.org/sas/dr12/boss/photoObj/frames/301/'+run+'/'+camcol+'/frame-'+band+'-'+run.zfill(6)+'-'+camcol+'-'+field.zfill(4)+'.fits.bz2'
-#    return sdss_url
+# Define a timeout handler
+def Handler(signum, frame):
+    raise Exception('Timout!')
+
+# Define function to check if a list of SDSS DR12 URL correspond to a primary fields, and return only those that are
+def SDSS_Primary_Check(urls, index):
+    urls_pri = []
+    for url in urls:
+        run = url.split('/')[9].lstrip('0')
+        camcol = url.split('/')[10].lstrip('0')
+        field = url.split('/')[11].split('.')[0].split('-')[4].lstrip('0')
+        check_string = run+' '+camcol+' '+field
+        if check_string in index:
+            urls_pri.append(url)
+    return urls_pri
+
+# Define function to consturct URL for a given SDSS field
+def SDSS_URL(run, camcol, field, band):
+    sdss_url = 'http://data.sdss3.org/sas/dr12/boss/photoObj/frames/301/'+run+'/'+camcol+'/frame-'+band+'-'+run.zfill(6)+'-'+camcol+'-'+field.zfill(4)+'.fits.bz2'
+    return sdss_url
 #
 ## Define function to wget SDSS fields; reject and re-acquire fields less than 1MB in size
 #def SDSS_wget(tile_url, path):

@@ -5,22 +5,18 @@ if location == 'saruman':
     dropbox = '/home/user/spx7cjc/Desktop/Herdata/Dropbox/'
 
 # Import smorgasbord
+import pdb
 import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-warnings.filterwarnings("ignore")
-import pdb
+warnings.filterwarnings('ignore')
 import gc
 import time
 import datetime
-import shutil
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
-import astropy.modeling.models
-import astropy.modeling.fitting
 import aplpy
 import ChrisFuncs
 plt.ioff()
@@ -72,7 +68,7 @@ for i in range(0, name_list.shape[0]):#np.where(name_list=='ESO359-002')[0]:
     time_start = time.time()
 
     # Loop over each band
-    print 'Processing '+str(name)
+    print('Processing '+str(name))
     for b in range(0, len(bands)):
         band = bands[b]
         wavelength = wavelengths[b]
@@ -83,16 +79,16 @@ for i in range(0, name_list.shape[0]):#np.where(name_list=='ESO359-002')[0]:
             continue
         """
         # Read in map
-        in_image, in_header = astropy.io.fits.getdata( in_dir+name+'_SDSS_'+band+'.fits', header=True )
-        in_wcs = astropy.wcs.WCS( in_header )
-        in_pix_width_arcsec = 3600.0 * ( np.min(np.abs(in_wcs.pixel_scale_matrix))**2.0 + np.max(np.abs(in_wcs.pixel_scale_matrix))**2.0 )**0.5
+        in_image, in_header = astropy.io.fits.getdata(in_dir+name+'_SDSS_'+band+'.fits', header=True)
+        in_wcs = astropy.wcs.WCS(in_header)
+        in_pix_width_arcsec = 3600.0 * np.abs(np.max(in_wcs.pixel_scale_matrix))
         out_image = in_image.copy()
 
         # Add minimum pixel value to image, to prevent NaNs from appearing later
-        out_image = out_image + np.abs( 2.0 * np.nanmin( out_image ) )
+        out_image = out_image + np.abs(2.0 * np.nanmin(out_image))
 
         # Convert each pixel value to SDSS magnitudes
-        out_image = 22.5 - ( 2.5 * np.log10(out_image) )
+        out_image = 22.5 - (2.5 * np.log10(out_image))
 
         # Convert each pixel value to AB magnitudes
         out_image = out_image + SDSS_to_AB[b]
@@ -146,11 +142,11 @@ for i in range(0, name_list.shape[0]):#np.where(name_list=='ESO359-002')[0]:
     # Report timings and clean memory
     time_list.append( time.time() )
     time_est = ChrisFuncs.TimeEst(time_list, len(name_list))
-    print 'Estimated completion time: '+time_est
+    print('Estimated completion time: '+time_est)
     gc.collect()
 
 # Jubilate
-print 'All done!'
+print('All done!')
 
 
 
