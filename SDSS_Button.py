@@ -289,7 +289,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         complete = False
         while not complete:
             try:
-                signal.alarm(3600)
+                #signal.alarm(3600)
                 pool = mp.Pool(processes=5)
                 for band in bands_dict.keys():
                     input_dir = gal_dir+band+'/'
@@ -467,7 +467,7 @@ def SDSS_wget(frame_url, path):
 
 # Define function to extract SDSS bz2 archives
 def SDSS_Extract(filepath):
-    print('Decompressing file '+str( filepath.split('/')[-1:][0] ))
+    #print('Decompressing file '+str( filepath.split('/')[-1:][0] ))
     os.system('bzip2 -d '+filepath)
 
 
@@ -501,4 +501,4 @@ def SDSS_URL(run, camcol, field, band):
 
 
 
-Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
+#Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
