@@ -359,7 +359,7 @@ def SDSS_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
 def SDSS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
     band = band_dict['band_name']
     wavelength = band_dict['wavelength']
-    print('Generating final standardised map of SDSS '+band+'um data for '+name)
+    print('Generating final standardised map of SDSS '+band+' data for '+name)
 
     # If null file exists for this target in this band, copy it to final output directory
     if os.path.exists(os.path.join(temp_dir,'.'+name+'_SDSS_'+band+'.null')):
@@ -505,4 +505,4 @@ def SDSS_URL(run, camcol, field, band):
 
 
 
-#Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
+Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
