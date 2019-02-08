@@ -98,7 +98,7 @@ def Herschel_Generator(name, ra, dec, in_dir, band_dict, thumbnails):
             out_header.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
             out_header.set('SIGUNIT', 'Jy/pix', 'Unit of the map')
             out_header.set('TELESCOP', 'Herschel', 'Telescope that made this observation')
-            out_header.set('INSTMNT', band_dict['instrument'], 'Instrument used for this observation')
+            out_header.set('INSTRMNT', band_dict['instrument'], 'Instrument used for this observation')
             out_header.set('FILTER', band_dict['filter'], 'Filter used for this observation')
             out_header.set('WVLNGTH', band_dict['wavelength'], 'Wavelength of observation')
             out_header.set('DATABASE', 'Map produced using data acquired from the Herschel Science Archive (HSA)', 'Database from which the reduced data was acquired')

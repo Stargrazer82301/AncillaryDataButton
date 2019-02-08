@@ -376,6 +376,7 @@ def ISSA_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
         out_hdr.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
         out_hdr.set('SIGUNIT', pix_unit, 'Unit of the map')
         out_hdr.set('TELESCOP', 'IRAS', 'Telescope that made this observation')
+        out_hdr.set('INSTRMNT', 'IRAS', 'Instrument used for this observation')
         out_hdr.set('PIPELINE', 'ISSA (IRAS Sky Survey Atlas)', 'Data products from which this cutout was produced')
         out_hdr.set('WVLNGTH', wavelength+'um', 'Wavelength of observation')
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
