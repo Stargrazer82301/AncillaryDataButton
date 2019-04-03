@@ -39,17 +39,17 @@ def Handler(signum, frame):
 
 # Define function to wget and extact Herschel files
 def Herschel_wget(data_url, data_filename):
-    print 'Acquiring '+data_url
+    print('Acquiring '+data_url)
     if os.path.exists(data_filename):
         os.remove(data_filename)
     success = False
     while success == False:
         try:
             wget.download(data_url, out=data_filename)
-            print 'Successful acquisition of '+data_url
+            print('Successful acquisition of '+data_url)
             success = True
         except:
-            print 'Failure! Retrying acquistion of '+data_url
+            print('Failure! Retrying acquistion of '+data_url)
             time.sleep(0.1)
             success = False
         os.system('gzip -d '+data_filename)
