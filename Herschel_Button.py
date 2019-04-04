@@ -18,18 +18,17 @@ import subprocess
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
-import aplpy
 import montage_wrapper
+import aplpy
 import wget
 import ChrisFuncs
 plt.ioff()
 
 
 
-
-
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False):
+def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False,
+        montage_path=None, swarp_path=None):
     """
     Function to generate standardised cutouts of Herschel observations.
 
@@ -65,8 +64,18 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 brightness units of MJy/sr.
         thumbnails: bool, optional
                 If True, JPG thumbnail images of the generated maps will also be proced and placed in out_dir.
+        montage_path: str, optional
+                Path to directory that contains the Montage commands (mProject, etc); useful if this directory is not in $PATH
+        swarp_path: str: optional
+                Path to directory that contains the SWarp command; useful if this directory is not in $PATH
     """
 
+
+    # Handle Montage and SWarp paths, if kwargs provided
+    if montage_path != None:
+        os.environ['PATH'] += ':'+montage_path
+    if swarp_path != None:
+        os.environ['PATH'] += ':'+swarp_path
 
     # Make sure input values are in list format, and sort out variable names for rest of function
     if not hasattr(ra, '__iter__'):
@@ -151,6 +160,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     # State map mode prefixes we care about
     req_obs_modes = ['SpirePhotoLargeScan','SpirePhotoSmallScan','PacsPhoto','SpirePacsParallel']
 
+
+
     # Record time taken
     time_list = [time.time()]
 
@@ -190,6 +201,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # Create band-specific directories
         for band in bands_dict.keys():
             os.makedirs(os.path.join(gal_dir,'Raw',band))
+
+
 
         # Perform query, with error handling
         print('Querying HSA')
@@ -277,6 +290,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 err_map, err_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
                 err_map[where_zero] = np.NaN
                 astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Error.fits')), img_map, header=err_header)
+
+
 
         # Loop over each band for coaddition
         for band in bands_dict.keys():
