@@ -519,7 +519,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             time.sleep(10.0)
             shutil.rmtree(temp_dir)
         except:
-            pdb.set_trace()
+            print('Unable to tidy up temporarny directory; probably due to NFS locks on network drive')
     print('All available Herschel imagery acquired for all targets')
 
 

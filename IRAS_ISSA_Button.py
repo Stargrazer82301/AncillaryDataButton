@@ -211,10 +211,14 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
     # Report completion
     try:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        shutil.rmtree(temp_dir)
     except:
-        raise Exception('Failed to delete temporary folder')
-    gc.collect()
+        try:
+            gc.collect()
+            time.sleep(10.0)
+            shutil.rmtree(temp_dir)
+        except:
+            print('Unable to tidy up temporarny directory; probably due to NFS locks on network drive')
     print('All available IRAS-ISSA data acquired for all targets')
 
 
