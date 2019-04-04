@@ -300,7 +300,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # Create Montage FITS header
             location_string = str(ra)+' '+str(dec)
             pix_size = bands_dict[band]['pix_size']
-            montage_wrapper.commands.mHdr(location_string, width, os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), pix_size=pix_size)
+            montage_wrapper.mHdr(location_string, width, os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), pix_size=pix_size)
 
             # Use Montage wrapper to reproject all fits files to common projection, skipping if none acually overlap
             print('Performing reprojections for '+name+'_Herschel_'+band+' maps')
@@ -309,10 +309,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             [ target_files.append(target_file) for target_file in os.listdir(os.path.join(gal_dir,'Raw',band)) if '.fits' in target_file ]
             for target_file in target_files:
                 try:
-                    montage_wrapper.wrappers.reproject(os.path.join(os.path.join(gal_dir,'Raw',band,target_file)),
-                                                       os.path.join(os.path.join(gal_dir,'Raw',band,target_file)),
-                                                       header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'),
-                                                       exact_size=True)
+                    montage_wrapper.reproject(os.path.join(os.path.join(gal_dir,'Raw',band,target_file)),
+                                              os.path.join(os.path.join(gal_dir,'Raw',band,target_file)),
+                                              header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'),
+                                              exact_size=True)
                 except:
                     os.remove(os.path.join(os.path.join(gal_dir,'Raw',band,target_file)))
                     proj_fail += 1
@@ -346,11 +346,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 # Use Montage wrapper to determine appropriate corrections for background matching
                 print('Determining background corrections for '+name+'_Herschel_'+band+' maps')
                 os.chdir(os.path.join(gal_dir,'Raw',band,'Img_Maps'))
-                montage_wrapper.commands.mImgtbl( os.path.join(gal_dir,'Raw',band,'Img_Maps'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), corners=True )
-                montage_wrapper.commands.mOverlaps( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat') )
-                montage_wrapper.commands.mDiffExec( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat'), os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), os.path.join(gal_dir,'Raw',band,'Pff_Temp'), no_area=True, proj_dir=os.path.join(gal_dir,'Raw',band,'Img_Maps'))
-                montage_wrapper.commands.mFitExec( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Fitting_Table.dat'), os.path.join(gal_dir,'Raw',band,'Pff_Temp') )
-                montage_wrapper.commands.mBgModel( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Fitting_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Corrections_Table.dat'), level_only=True, n_iter=16384)
+                montage_wrapper.mImgtbl( os.path.join(gal_dir,'Raw',band,'Img_Maps'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), corners=True )
+                montage_wrapper.mOverlaps( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat') )
+                montage_wrapper.mDiffExec( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat'), os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), os.path.join(gal_dir,'Raw',band,'Pff_Temp'), no_area=True, proj_dir=os.path.join(gal_dir,'Raw',band,'Img_Maps'))
+                montage_wrapper.mFitExec( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Diffs_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Fitting_Table.dat'), os.path.join(gal_dir,'Raw',band,'Pff_Temp') )
+                montage_wrapper.mBgModel( os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Fitting_Table.dat'), os.path.join(gal_dir,'Raw',band,'Img_Maps',band+'_Image_Corrections_Table.dat'), level_only=True, n_iter=16384)
 
                 # Apply background corrections using Montage subprocess, with timeout handling
                 print('Applying background corrections to '+name+'_Herschel_'+band+' maps')
@@ -431,7 +431,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 continue
 
             # Re-project finalised image map using Montage
-            montage_wrapper.wrappers.reproject(os.path.join(gal_dir,'Raw',band,'SWarp_Temp',name+'_Herschel_'+band+'_SWarp.fits'), os.path.join(gal_dir,name+'_Herschel_'+band+'.fits'), header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), exact_size=True)
+            montage_wrapper.reproject(os.path.join(gal_dir,'Raw',band,'SWarp_Temp',name+'_Herschel_'+band+'_SWarp.fits'), os.path.join(gal_dir,name+'_Herschel_'+band+'.fits'), header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), exact_size=True)
 
             # Compress finalised FITS file
             os.chdir(gal_dir)
@@ -463,7 +463,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp_Add.fits'), add_image, header=add_header, clobber=True)
 
             # Re-project final exposure map using Montage
-            montage_wrapper.wrappers.reproject(os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp_Add.fits'), os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp.fits'), header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), exact_size=True)
+            montage_wrapper.reproject(os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp_Add.fits'), os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp.fits'), header=os.path.join(gal_dir,'Raw',band,str(name)+'.hdr'), exact_size=True)
 
             # Convert final exposure time map into error map
             err_image, err_header = astropy.io.fits.getdata(os.path.join(gal_dir,'Raw',band,'Exp_Maps',name+'_Herschel_'+band+'_Exp.fits'), header=True)
@@ -519,8 +519,8 @@ def Herschel_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_d
         shutil.rmtree(input_dir+'Montage_Temp')
     os.makedirs(input_dir+'Montage_Temp')
     os.chdir(input_dir+'Montage_Temp')
-    montage_wrapper.commands.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
-    montage_wrapper.commands.mExec('Herschel', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=os.path.join(out_dir,name+'_Herschel_'+band+'.fits'), region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
+    montage_wrapper.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
+    montage_wrapper.mExec('Herschel', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=os.path.join(out_dir,name+'_Herschel_'+band+'.fits'), region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
     shutil.rmtree(input_dir+'Montage_Temp')
     print('Completed Montaging '+name+'_Herschel_'+band)
 
@@ -673,4 +673,4 @@ def Handler(signum, frame):
 
 
 
-Run(076.0404, +32.7192, 0.1, name='LDN1512', out_dir='/astro/dust_kg/cclark/Lea/')
+Run(23.4621, +30.6599, 1.0, name='M33', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M33/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
