@@ -18,7 +18,6 @@ import subprocess
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
-import montage_wrapper
 import aplpy
 import wget
 import ChrisFuncs
@@ -76,6 +75,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         os.environ['PATH'] += ':'+montage_path
     if swarp_path != None:
         os.environ['PATH'] += ':'+swarp_path
+    import montage_wrapper
 
     # Make sure input values are in list format, and sort out variable names for rest of function
     if not hasattr(ra, '__iter__'):
@@ -541,6 +541,8 @@ def Herschel_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_d
 
 
 
+
+
 # Define function to finalise Herschel image of a given source in a given band
 def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
     band = band_dict['band']
@@ -633,7 +635,7 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         # Make thumbnail image of cutout
         if thumbnails:
             try:
-                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'))
+                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits'))
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
                 thumb_out.tick_labels.hide()
@@ -647,6 +649,9 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
 
         # Clean memory before finishing
         gc.collect()
+
+
+
 
 
 # Define function to wget and extact Herschel files
@@ -668,6 +673,8 @@ def Herschel_wget(data_url, data_filename):
 
 
 
+
+
 # Define function to replace null pixels in SWarp outputs with NaNs
 def Herschel_SWarp_NaN(target):
     in_fitsdata = astropy.io.fits.open(target)
@@ -682,10 +689,14 @@ def Herschel_SWarp_NaN(target):
 
 
 
+
+
 # Define a timeout handler
 def Handler(signum, frame):
     raise Exception("Timout!")
 
 
 
-Run(23.4621, +30.6599, 1.0, name='M33', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M33/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
+
+
+#Run(23.4621, +30.6599, 1.0, name='M33', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M33/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
