@@ -182,7 +182,7 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
 
 
 
-# Define function to SWarp together GALEX tiles of a given source
+# Define function to mosaic together GALEX tiles of a given source
 def GALEX_Montage(name, ra, dec, width, band_dict, gal_dir, out_dir):
     print 'Commencing mosaicing for '+name
 
