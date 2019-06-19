@@ -8,7 +8,7 @@ import multiprocessing as mp
 import gc
 import re
 import copy
-import tempfile
+import subprocess
 import shutil
 import lmfit
 import time
@@ -218,8 +218,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                     galex_url = str(galex_url, encoding='utf-8')
                     for map_suffix in map_suffixes:
                         map_url = galex_url.replace('-int.fits.gz', map_suffix)
-                        #dl_pool.apply_async( GALEX_wget, args=(map_url, os.path.join(gal_dir,'Download',map_url.split('/')[-1]),) )
-                        GALEX_wget(map_url, os.path.join(gal_dir,'Download',map_url.split('/')[-1]))
+                        dl_pool.apply_async( GALEX_wget, args=(map_url, os.path.join(gal_dir,'Download',map_url.split('/')[-1]),) )
+                        #GALEX_wget(map_url, os.path.join(gal_dir,'Download',map_url.split('/')[-1]))
                 dl_pool.close()
                 dl_pool.join()
                 dl_complete = True
@@ -250,16 +250,18 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
              # Declare directories
             id_string = name+'_GALEX_'+band_dict['band_long']
 
-            # Create storage directories for stages of processing (handling SWarp storage directory via tempfile to stop .NFS locks being an issue)
-            sub_dir_list = ['Raw', 'Diffs_Temp', 'Backsub_Temp', 'SWarp_Temp', 'Reproject_Temp', 'Convolve_Temp']
+            # Create handling directories for stages of processing
+            sub_dir_list = ['Raw', 'Diffs_Temp', 'Backsub_Temp', 'Reproject_Temp', 'Convolve_Temp']
             for sub_dir in sub_dir_list:
-                if sub_dir == 'SWarp_Temp':
-                    swarp_dir = tempfile.mkdtemp()
-                else:
-                    if os.path.exists(os.path.join(gal_dir, sub_dir)):
-                        shutil.rmtree(os.path.join(gal_dir, sub_dir))
-                    os.mkdir(os.path.join(gal_dir, sub_dir))
+                if os.path.exists(os.path.join(gal_dir, sub_dir)):
+                    shutil.rmtree(os.path.join(gal_dir, sub_dir))
+                os.mkdir(os.path.join(gal_dir, sub_dir))
 
+            # Create handling directory for SWarp separately, to stop .NFS locks being an issue
+            if not os.path.exists(os.path.join(os.path.join(temp_dir,'SWarp_Temp'))):
+                os.mkdir(os.path.join(temp_dir,'SWarp_Temp'))
+            swarp_dir = os.path.join(temp_dir,'SWarp_Temp',name+'_'+band+'_'+str(time.time()).replace('.','-'))
+            os.mkdir(swarp_dir)
 
             # Copy maps from relevent band from download directory to raw directory
             for dl_file in os.listdir(os.path.join(gal_dir, 'Download')):
@@ -311,17 +313,17 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 # Count image files, and move to reprojection directory
                 mosaic_count = len(raw_files)
                 for raw_file in raw_files:
-                    shutil.move( os.path.join( gal_dir, 'Raw', raw_file ), os.path.join( gal_dir, 'Reproject_Temp' ) )
+                    shutil.move(os.path.join(gal_dir, 'Raw', raw_file), os.path.join( gal_dir, 'Reproject_Temp'))
 
                 # If more than one image file, commence background-matching
                 if mosaic_count>1:
                     print('Matching background of '+id_string+' maps')
-                    GALEX_Zero( os.path.join( gal_dir, 'Reproject_Temp' ), os.path.join( gal_dir, 'Convolve_Temp' ), '-int.fits' )
+                    GALEX_Zero(os.path.join(gal_dir, 'Reproject_Temp'), os.path.join(gal_dir, 'Convolve_Temp'), '-int.fits')
 
                 # Reproject image and weight prior to coaddition
                 os.chdir( os.path.join( gal_dir, 'Reproject_Temp' ) )
-                montage_wrapper.commands.mImgtbl( os.path.join(gal_dir,'Reproject_Temp'),  os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), corners=True)
-                montage_wrapper.commands.mProjExec( os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,id_string+'_HDR'), swarp_dir, os.path.join(gal_dir,id_string+'_Proj_Stats.txt'), raw_dir=os.path.join(gal_dir,'Reproject_Temp'), debug=False, exact=True, whole=False)
+                montage_wrapper.commands.mImgtbl(os.path.join(gal_dir,'Reproject_Temp'),  os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), corners=True)
+                montage_wrapper.commands.mProjExec(os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,id_string+'_HDR'), swarp_dir, os.path.join(gal_dir,id_string+'_Proj_Stats.txt'), raw_dir=os.path.join(gal_dir,'Reproject_Temp'), debug=False, exact=True, whole=False)
 
                 # Rename reprojected files for SWarp
                 for listfile in os.listdir(swarp_dir):
@@ -337,7 +339,24 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('Mosaicing '+id_string+' maps')
                 image_width_pixels = str(int((float(width)*3600.)/pix_width_arcsec))
                 os.chdir(swarp_dir)
-                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N  -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
+                """
+                subprocess.Popen(['swarp','-IMAGEOUT_NAME', id_string+'_SWarp.fits',
+                                  '-WEIGHT_SUFFIX', '.wgt.fits',
+                                  '-CENTER_TYPE', 'MANUAL',
+                                  '-CENTER', str(ra)+','+str(dec),
+                                  '-COMBINE_TYPE', 'WEIGHTED',
+                                  '-COMBINE_BUFSIZE', '2048',
+                                  '-IMAGE_SIZE ', image_width_pixels+','+image_width_pixels,
+                                  '-MEM_MAX', '4096',
+                                  '-NTHREADS', '4',
+                                  '-RESCALE_WEIGHTS', 'N',
+                                  '-RESAMPLE', 'N',
+                                  '-SUBTRACT_BACK', 'N',
+                                  '-VERBOSE_TYPE', 'QUIET',
+                                  '-VMEM_MAX', '4095',
+                                  '-WEIGHT_TYPE', 'MAP_WEIGHT'])
+                """
+                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
 
                 # Remove null values, correct for pixel rescaling, and save finalised map to output directory
                 in_image, in_header = astropy.io.fits.getdata(os.path.join(swarp_dir, id_string+'_SWarp.fits'), header=True)
@@ -350,7 +369,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
                 # Clean up
                 print('Completed mosaicing of '+id_string)
-                shutil.rmtree(swarp_dir)
+                shutil.rmtree(swarp_dir, ignore_errors=True)
                 gc.collect()
 
 
@@ -532,8 +551,11 @@ def GALEX_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnail
         in_pix_width_arcsec = 3600.0 * np.abs( np.max( in_wcs.pixel_scale_matrix ) )
         out_img = in_img.copy()
 
-        # Convert each pixel value to janskys (NB; correction for pixel rescaling already made)
-        out_img = band_dict['zero_point'] - ( 2.5 * np.log10(out_img) )
+        # Calculate conversion factor to get from GALEX native units (counts pix^-1 sec^-1) to Janskies (doing it this way stops inf values appearing)
+        unit_factor = ChrisFuncs.ABMagsToJy(band_dict['zero_point'] - ( 2.5 * np.log10(1.0) ))
+
+        # Use conversion factor to convert each pixel value to janskys
+        out_img *= unit_factor
 
         # If desired, convert pixel units from Jy/pix to Jy/pix
         pix_unit = 'Jy/pix'
@@ -617,7 +639,7 @@ def Handler(signum, frame):
 
 
 
-"""
+
 # Declare path to Montage commands to permit import
 import socket
 location = socket.gethostname()
@@ -630,5 +652,4 @@ elif '.stsci.edu' in location:
 os.environ['PATH'] += ':'+montage_path
 os.environ['PATH'] += ':'+swarp_path
 import montage_wrapper
-Run(054.621179, -35.450742, 3.5, name='GuFoCS', out_dir='/user/cclark/GuFoCS/')
-"""
+Run(04.621179, -35.450742, 7.0, name='GuFoCS', out_dir='/astro/dust_kg/cclark/GuFoCS/')
