@@ -318,7 +318,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 # If more than one image file, commence background-matching
                 if mosaic_count>1:
                     print('Matching background of '+id_string+' maps')
-                    GALEX_Zero(os.path.join(gal_dir, 'Reproject_Temp'), os.path.join(gal_dir, 'Convolve_Temp'), '-int.fits')
+                    GALEX_Zero(os.path.join(gal_dir, band+'_Reproject_Temp'), '-int.fits')
 
                 # Reproject image and weight prior to coaddition
                 os.chdir( os.path.join( gal_dir, 'Reproject_Temp' ) )
@@ -445,7 +445,7 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
     out_image[ np.where(cov_trim_mask==0) ] = np.NaN
 
     # Save cleaned image
-    astropy.io.fits.writeto( os.path.join( raw_dir, raw_file ), out_image, header=in_header, overwrite=True )
+    astropy.io.fits.writeto(os.path.join(raw_dir, raw_file), out_image, header=in_header, overwrite=True )
 
     # Create convolved version of map, for later use in background-matching
     kernel_width = 20
@@ -497,22 +497,6 @@ def GALEX_Zero(fitsfile_dir, convfile_dir, target_suffix):
             continue
         average_offset = level_ref - level
 
-        """
-        # Save floor and peak values
-        floor_value = np.nanmin(image_conv)
-        peak_value = ChrisFuncs.SigmaClip( image_conv, tolerance=0.00025, median=False, sigma_thresh=3.0)[1]
-        floor_value_list.append(floor_value)
-        peak_value_list.append(peak_value)
-        if i==0:
-            floor_value_ref = floor_value
-            peak_value_ref = peak_value
-            continue
-
-        # Calculate offsets
-        floor_offset = floor_value_ref - floor_value
-        peak_offset = peak_value_ref - peak_value
-        average_offset = peak_offset#np.mean([ floor_offset, peak_offset ])
-        """
         # Read in unconvolved file, and apply offset
         image_in, header_in = astropy.io.fits.getdata(os.path.join(fitsfile_dir,fitsfile_list[i]), header=True)
         image_out = image_in + average_offset
