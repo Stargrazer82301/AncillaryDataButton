@@ -11,6 +11,7 @@ import copy
 import subprocess
 import shutil
 import lmfit
+import joblib
 import time
 import datetime
 import signal
@@ -27,7 +28,7 @@ plt.ioff()
 
 
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False):
+def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False, swarp_bg=False):
     """
     Function to generate standardised cutouts of GALEX observations.
 
@@ -142,8 +143,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                   'NUV':{'band_short':'nd','band_long':'NUV','wavelength':'227.1','zero_point':20.08}}
 
     # Provide information about different map types
-    map_suffixes = ['-int.fits.gz','-skybg.fits.gz','-exp.fits.gz','-rr.fits.gz']#,'-flags.fits.gz']
-    #map_types = ['Raw','Background','Exposure','Response']#,'Flags']
+    map_suffixes = ['-int.fits.gz','-skybg.fits.gz','-exp.fits.gz','-rr.fits.gz']
 
     # Record time taken
     time_list = [time.time()]
@@ -238,8 +238,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         bands_dict_gal = {}
         for band in bands_dict.keys():
             for raw_file in os.listdir(os.path.join(gal_dir,'Download')):
-                if bands_dict[band]['band_short']+'-int.fits.gz' in raw_file:
+                if bands_dict[band]['band_short']+'-int.fits' in raw_file:
                     bands_dict_gal[band] = bands_dict[band]
+
+                # Uncompress data (otherwise Montage will fill /tmp/ directory by uncompressing things itself)
+                if '.fits.gz' in raw_file:
+                    os.system('gzip -d '+os.path.join(gal_dir,'Download',raw_file))
 
 
 
@@ -251,7 +255,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             id_string = name+'_GALEX_'+band_dict['band_long']
 
             # Create handling directories for stages of processing
-            sub_dir_list = ['Raw', 'Diffs_Temp', 'Backsub_Temp', 'Reproject_Temp', 'Convolve_Temp']
+            sub_dir_list = [band+'_Raw', band+'_Diffs_Temp', band+'_Backsub_Temp', band+'_Reproject_Temp', band+'_Convolve_Temp']
             for sub_dir in sub_dir_list:
                 if os.path.exists(os.path.join(gal_dir, sub_dir)):
                     shutil.rmtree(os.path.join(gal_dir, sub_dir))
@@ -266,16 +270,16 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # Copy maps from relevent band from download directory to raw directory
             for dl_file in os.listdir(os.path.join(gal_dir, 'Download')):
                 if '-'+band_dict['band_short']+'-' in dl_file:
-                    shutil.copy2(os.path.join(gal_dir, 'Download', dl_file), os.path.join(gal_dir, 'Raw'))
+                    shutil.copy2(os.path.join(gal_dir, 'Download', dl_file), os.path.join(gal_dir, band+'_Raw'))
 
             # Ensure that at least one of the raw GALEX int tiles has actual flux coverage at location of source
             coverage = False
             raw_files = []
-            [raw_files.append(raw_file) for raw_file in os.listdir(os.path.join(gal_dir, 'Raw')) if '-int.fits' in raw_file]
+            [raw_files.append(raw_file) for raw_file in os.listdir(os.path.join(gal_dir, band+'_Raw')) if '-int.fits' in raw_file]
             for raw_file in raw_files:
 
                 # Read in map
-                in_image, in_header = astropy.io.fits.getdata(os.path.join(gal_dir, 'Raw', raw_file), header=True)
+                in_image, in_header = astropy.io.fits.getdata(os.path.join(gal_dir, band+'_Raw', raw_file), header=True)
 
                 # Locate pixel coords
                 in_wcs = astropy.wcs.WCS(in_header)
@@ -298,10 +302,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
                 # Loop over raw int tiles, creating exposure maps, and cleaning images to remove null pixels (also, creating convolved maps for later background fitting)
                 print('Cleaning '+str(len(raw_files))+' raw maps for '+id_string)
-                pool = mp.Pool(processes=7)
+                pool = mp.Pool(processes=int(0.75*mp.cpu_count()))
                 for raw_file in raw_files:
-                    pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,'Raw'), os.path.join(gal_dir,'Reproject_Temp'), os.path.join(gal_dir,'Convolve_Temp'), band_dict,))
-                    #GALEX_Clean(raw_file, os.path.join(gal_dir,'Raw'), os.path.join(gal_dir,'Reproject_Temp'), os.path.join(gal_dir,'Convolve_Temp'), band_dict)
+                    #pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict,))
+                    GALEX_Clean(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict)
                 pool.close()
                 pool.join()
 
@@ -310,36 +314,34 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 pix_width_arcsec = 2.5
                 montage_wrapper.commands.mHdr(location_string, width, os.path.join(gal_dir, id_string+'_HDR'), pix_size=pix_width_arcsec)
 
-                # Count image files, and move to reprojection directory
-                mosaic_count = len(raw_files)
-                for raw_file in raw_files:
-                    shutil.move(os.path.join(gal_dir, 'Raw', raw_file), os.path.join( gal_dir, 'Reproject_Temp'))
-
                 # If more than one image file, commence background-matching
+                mosaic_count = len(raw_files)
                 if mosaic_count>1:
                     print('Matching background of '+id_string+' maps')
                     GALEX_Zero(os.path.join(gal_dir, band+'_Reproject_Temp'), '-int.fits')
 
-                # Reproject image and weight prior to coaddition
-                os.chdir( os.path.join( gal_dir, 'Reproject_Temp' ) )
-                montage_wrapper.commands.mImgtbl(os.path.join(gal_dir,'Reproject_Temp'),  os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), corners=True)
-                montage_wrapper.commands.mProjExec(os.path.join(gal_dir,band+'_Image_Metadata_Table.dat'), os.path.join(gal_dir,id_string+'_HDR'), swarp_dir, os.path.join(gal_dir,id_string+'_Proj_Stats.txt'), raw_dir=os.path.join(gal_dir,'Reproject_Temp'), debug=False, exact=True, whole=False)
+                # Reproject images (dooing individually, instead of using mProjExec, to avoid Montage arbitrarily skipping some images)
+                print('Reprojecting '+id_string+' maps')
+                os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
+                joblib.Parallel( n_jobs=int(0.75*mp.cpu_count()) )\
+                               ( joblib.delayed( GALEX_Reproject )\
+                               ( id_string, band, list_file, gal_dir, swarp_dir )\
+                               for list_file in os.listdir(os.path.join(gal_dir, band+'_Reproject_Temp')) )
 
                 # Rename reprojected files for SWarp
-                for listfile in os.listdir(swarp_dir):
-                    if '_area.fits' in listfile:
-                        os.remove(os.path.join(swarp_dir,listfile))
-                    elif 'hdu0_' in listfile:
-                        os.rename(os.path.join(swarp_dir,listfile), os.path.join(swarp_dir,listfile.replace('hdu0_','')))
-                for listfile in os.listdir(swarp_dir):
-                    if '.fits.gz.fits' in listfile:
-                        os.rename(os.path.join(swarp_dir,listfile), os.path.join(swarp_dir,listfile.replace('.fits.gz.fits','.fits')))
+                for list_file in os.listdir(swarp_dir):
+                    if '_area.fits' in list_file:
+                        os.remove(os.path.join(swarp_dir,list_file))
+                    elif 'hdu0_' in list_file:
+                        os.rename(os.path.join(swarp_dir,list_file), os.path.join(swarp_dir,list_file.replace('hdu0_','')))
+                for list_file in os.listdir(swarp_dir):
+                    if '.fits.gz.fits' in list_file:
+                        raise Exception('Compressed files found in SWarp directory; something has gone wrong')
 
                 # Use SWarp to co-add images weighted by their error maps
                 print('Mosaicing '+id_string+' maps')
                 image_width_pixels = str(int((float(width)*3600.)/pix_width_arcsec))
                 os.chdir(swarp_dir)
-                """
                 subprocess.Popen(['swarp','-IMAGEOUT_NAME', id_string+'_SWarp.fits',
                                   '-WEIGHT_SUFFIX', '.wgt.fits',
                                   '-CENTER_TYPE', 'MANUAL',
@@ -355,8 +357,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                                   '-VERBOSE_TYPE', 'QUIET',
                                   '-VMEM_MAX', '4095',
                                   '-WEIGHT_TYPE', 'MAP_WEIGHT'])
-                """
-                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
+                """os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')"""
 
                 # Remove null values, correct for pixel rescaling, and save finalised map to output directory
                 in_image, in_header = astropy.io.fits.getdata(os.path.join(swarp_dir, id_string+'_SWarp.fits'), header=True)
@@ -445,10 +446,10 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
     out_image[ np.where(cov_trim_mask==0) ] = np.NaN
 
     # Save cleaned image
-    astropy.io.fits.writeto(os.path.join(raw_dir, raw_file), out_image, header=in_header, overwrite=True )
+    astropy.io.fits.writeto(os.path.join(reproj_dir, raw_file), out_image, header=in_header, overwrite=True )
 
     # Create convolved version of map, for later use in background-matching
-    kernel_width = 20
+    kernel_width = 100
     """conv_image = scipy.ndimage.filters.gaussian_filter(in_image, kernel_width)
     conv_image[ np.where( np.isnan(out_image)==True ) ] = np.NaN"""
     kernel = astropy.convolution.kernels.Tophat2DKernel(kernel_width)
@@ -463,7 +464,7 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
 
 
 # Define function to set a set of maps to the same level
-def GALEX_Zero(fitsfile_dir, convfile_dir, target_suffix):
+def GALEX_Zero(fitsfile_dir, target_suffix):
 
     # Define sill ysubfunction that fits flat plane to image, to find level
     def GALEX_Level_Chisq(level_params, image):
@@ -489,7 +490,7 @@ def GALEX_Zero(fitsfile_dir, convfile_dir, target_suffix):
         # Fit to level of image; save if first image, otherwise calculate appropriate offset
         level_params = lmfit.Parameters()
         level_params.add('level', value=np.nanmedian(image_conv), vary=True)
-        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, tolerance=0.005, median=False, sigma_thresh=3.0)[2]
+        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=True, sigma_thresh=2.0)[2]
         level_result = lmfit.minimize(GALEX_Level_Chisq, level_params, args=(image_conv_clipped.flatten(),))
         level = level_result.params['level'].value
         if i==0:
@@ -514,6 +515,36 @@ def GALEX_Zero(fitsfile_dir, convfile_dir, target_suffix):
                 time.sleep(10)
                 if save_fail>=5:
                     pdb.set_trace()
+
+
+
+# Define function to reproject image and weight files for given source a new projection defined in a header file
+def GALEX_Reproject(id_string, band, list_file, gal_dir, swarp_dir):
+
+    # To make sure we go in order and catch problems, we skip weight files in the first instance
+    if '.wgt.fits' in list_file:
+        return
+
+    # First, reproject the actual integration map; if that fails, just move on with life
+    print('Reprojecting map '+list_file)
+    os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
+    try:
+        montage_wrapper.commands.mProject(os.path.join(gal_dir,band+'_Reproject_Temp',list_file),
+                                          os.path.join(swarp_dir,list_file),
+                                          os.path.join(gal_dir,id_string+'_HDR'))
+    except:
+        return
+
+    # Next, reproject the weight map; if that fails, delete the corresponding integration file
+    try:
+        montage_wrapper.commands.mProject(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')),
+                                          os.path.join(swarp_dir,list_file.replace('.fits','.wgt.fits')),
+                                          os.path.join(gal_dir,id_string+'_HDR'))
+    except:
+        if ('-int.fits' in list_file) and (os.path.exists(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')))):
+            os.remove(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')))
+        if ('.wgt.fits' in list_file) and (os.path.exists(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.wgt.fits','.fits')))):
+            os.remove(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.wgt.fits','.fits')))
 
 
 
