@@ -64,6 +64,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 brightness units of MJy/sr.
         thumbnails: bool, optional
                 If True, JPG thumbnail images of the generated maps will also be proced and placed in out_dir.
+        swarp_bg: bool, optional
+                As GALEX_Button uses SWarp to perform the coaddition of the data, this kwarg provides the option to
+                enable SWarp's background-sutraction (disabled be default, as it can remove large-scale structure).
     """
 
 
@@ -341,8 +344,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 # Use SWarp to co-add images weighted by their error maps
                 print('Mosaicing '+id_string+' maps')
                 image_width_pixels = str(int((float(width)*3600.)/pix_width_arcsec))
+                if swarp_bg == False:
+                    swarp_bg = 'N'
+                elif swarp_bg == True:
+                    swarp_bg = 'Y'
                 os.chdir(swarp_dir)
-                subprocess.Popen(['swarp','-IMAGEOUT_NAME', id_string+'_SWarp.fits',
+                """subprocess.Popen(['swarp','-IMAGEOUT_NAME', id_string+'_SWarp.fits',
                                   '-WEIGHT_SUFFIX', '.wgt.fits',
                                   '-CENTER_TYPE', 'MANUAL',
                                   '-CENTER', str(ra)+','+str(dec),
@@ -350,14 +357,14 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                                   '-COMBINE_BUFSIZE', '2048',
                                   '-IMAGE_SIZE ', image_width_pixels+','+image_width_pixels,
                                   '-MEM_MAX', '4096',
-                                  '-NTHREADS', '4',
+                                  '-NTHREADS', str(int(0.75*mp.cpu_count())),
                                   '-RESCALE_WEIGHTS', 'N',
                                   '-RESAMPLE', 'N',
-                                  '-SUBTRACT_BACK', 'N',
+                                  '-SUBTRACT_BACK', swarp_bg,
                                   '-VERBOSE_TYPE', 'QUIET',
                                   '-VMEM_MAX', '4095',
-                                  '-WEIGHT_TYPE', 'MAP_WEIGHT'])
-                """os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')"""
+                                  '-WEIGHT_TYPE', 'MAP_WEIGHT'])"""
+                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
 
                 # Remove null values, correct for pixel rescaling, and save finalised map to output directory
                 in_image, in_header = astropy.io.fits.getdata(os.path.join(swarp_dir, id_string+'_SWarp.fits'), header=True)
@@ -667,4 +674,4 @@ elif '.stsci.edu' in location:
 os.environ['PATH'] += ':'+montage_path
 os.environ['PATH'] += ':'+swarp_path
 import montage_wrapper
-Run(04.621179, -35.450742, 7.0, name='GuFoCS', out_dir='/astro/dust_kg/cclark/GuFoCS/')
+Run(54.621179, -35.450742, 7.0, name='GuFoCS', out_dir='/astro/dust_kg/cclark/GuFoCS/', swarp_bg=True)
