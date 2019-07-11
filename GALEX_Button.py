@@ -661,8 +661,7 @@ def Handler(signum, frame):
 
 
 
-
-# Declare path to Montage commands to permit import
+"""
 import socket
 location = socket.gethostname()
 if location in ['replicators.stsci.edu', 'replicators.local.stsci.edu']:
@@ -675,3 +674,4 @@ os.environ['PATH'] += ':'+montage_path
 os.environ['PATH'] += ':'+swarp_path
 import montage_wrapper
 Run(54.621179, -35.450742, 7.0, name='GuFoCS', out_dir='/astro/dust_kg/cclark/GuFoCS/', swarp_bg=True)
+"""
