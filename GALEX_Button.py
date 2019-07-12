@@ -497,7 +497,7 @@ def GALEX_Zero(fitsfile_dir, target_suffix):
         # Fit to level of image; save if first image, otherwise calculate appropriate offset
         level_params = lmfit.Parameters()
         level_params.add('level', value=np.nanmedian(image_conv), vary=True)
-        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=True, sigma_thresh=2.0)[2]
+        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=False, sigma_thresh=2.0)[2]
         level_result = lmfit.minimize(GALEX_Level_Chisq, level_params, args=(image_conv_clipped.flatten(),))
         level = level_result.params['level'].value
         if i==0:
@@ -668,7 +668,7 @@ if location in ['replicators.stsci.edu', 'replicators.local.stsci.edu']:
     montage_path = '/Users/cclark/Soft/Montage/bin/'
     swarp_path = '/usr/local/bin/'
 elif '.stsci.edu' in location:
-    montage_path = '/home/cclark/soft/montage/bin/'
+    montage_path = '/grp/software/Linux/RH7/x86_64/montage/5.0/bin/''
     swarp_path = '/grp/software/linux/rhel7/x86_64/swarp/2.38.0/bin/'
 os.environ['PATH'] += ':'+montage_path
 os.environ['PATH'] += ':'+swarp_path
