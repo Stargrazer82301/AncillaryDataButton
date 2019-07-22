@@ -658,20 +658,3 @@ def GALEX_wget(tile_url, tile_filename):
 def Handler(signum, frame):
     raise Exception("Timout!")
 
-
-
-
-"""
-import socket
-location = socket.gethostname()
-if location in ['replicators.stsci.edu', 'replicators.local.stsci.edu']:
-    montage_path = '/Users/cclark/Soft/Montage/bin/'
-    swarp_path = '/usr/local/bin/'
-elif '.stsci.edu' in location:
-    montage_path = '/grp/software/Linux/RH7/x86_64/montage/5.0/bin/''
-    swarp_path = '/grp/software/linux/rhel7/x86_64/swarp/2.38.0/bin/'
-os.environ['PATH'] += ':'+montage_path
-os.environ['PATH'] += ':'+swarp_path
-import montage_wrapper
-Run(54.621179, -35.450742, 7.0, name='GuFoCS', out_dir='/astro/dust_kg/cclark/GuFoCS/', swarp_bg=True)
-"""
