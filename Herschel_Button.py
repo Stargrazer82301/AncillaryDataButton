@@ -526,23 +526,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
 
 
-# Define function to Montage together contents of folder
-def Herschel_Montage(name, ra, dec, pix_width, map_width, band, input_dir, out_dir):
-    print('Montaging '+name+'_Herschel_'+band)
-    location_string = str(ra)+' '+str(dec)
-    if os.path.exists(input_dir+'Montage_Temp'):
-        shutil.rmtree(input_dir+'Montage_Temp')
-    os.makedirs(input_dir+'Montage_Temp')
-    os.chdir(input_dir+'Montage_Temp')
-    montage_wrapper.mHdr(location_string, map_width, input_dir+'Montage_Temp/'+str(name)+'_HDR', pix_size=pix_width)
-    montage_wrapper.mExec('Herschel', band.lower(), raw_dir=input_dir, level_only=False, debug_level=0, output_image=os.path.join(out_dir,name+'_Herschel_'+band+'.fits'), region_header=input_dir+'Montage_Temp/'+str(name)+'_HDR', workspace_dir=input_dir+'Montage_Temp')
-    shutil.rmtree(input_dir+'Montage_Temp')
-    print('Completed Montaging '+name+'_Herschel_'+band)
-
-
-
-
-
 # Define function to finalise Herschel image of a given source in a given band
 def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
     band = band_dict['band']
