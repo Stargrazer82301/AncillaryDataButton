@@ -8,7 +8,6 @@ import multiprocessing as mp
 import gc
 import re
 import copy
-import subprocess
 import shutil
 import lmfit
 import joblib
@@ -18,6 +17,7 @@ import signal
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
+import montage_wrapper
 import aplpy
 import wget
 import ChrisFuncs
@@ -497,7 +497,7 @@ def GALEX_Zero(fitsfile_dir, target_suffix):
         # Fit to level of image; save if first image, otherwise calculate appropriate offset
         level_params = lmfit.Parameters()
         level_params.add('level', value=np.nanmedian(image_conv), vary=True)
-        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=False, sigma_thresh=2.0)[2]
+        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=False, sigma_thresh=3.0)[2]
         level_result = lmfit.minimize(GALEX_Level_Chisq, level_params, args=(image_conv_clipped.flatten(),))
         level = level_result.params['level'].value
         if i==0:
