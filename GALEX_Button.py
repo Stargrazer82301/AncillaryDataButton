@@ -17,10 +17,11 @@ import signal
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
-import montage_wrapper
+import reproject
 import aplpy
 import wget
 import ChrisFuncs
+import ChrisFuncs.Fits
 plt.ioff()
 
 
@@ -307,15 +308,14 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('Cleaning '+str(len(raw_files))+' raw maps for '+id_string)
                 pool = mp.Pool(processes=int(0.75*mp.cpu_count()))
                 for raw_file in raw_files:
-                    #pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict,))
-                    GALEX_Clean(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict)
+                    pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict,))
+                    #GALEX_Clean(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict)
                 pool.close()
                 pool.join()
 
-                # Create Montage FITS header
-                location_string = str(ra)+' '+str(dec)
+                # Create FITS header
                 pix_width_arcsec = 2.5
-                montage_wrapper.commands.mHdr(location_string, width, os.path.join(gal_dir, id_string+'_HDR'), pix_size=pix_width_arcsec)
+                out_hdr = ChrisFuncs.Fits.FitsHeader(ra, dec, width, pix_width_arcsec)
 
                 # If more than one image file, commence background-matching
                 mosaic_count = len(raw_files)
@@ -328,8 +328,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
                 joblib.Parallel( n_jobs=int(0.75*mp.cpu_count()) )\
                                ( joblib.delayed( GALEX_Reproject )\
-                               ( id_string, band, list_file, gal_dir, swarp_dir )\
+                               ( id_string, band, out_hdr, list_file, gal_dir, swarp_dir )\
                                for list_file in os.listdir(os.path.join(gal_dir, band+'_Reproject_Temp')) )
+                """for list_file in os.listdir(os.path.join(gal_dir, band+'_Reproject_Temp')):
+                    GALEX_Reproject( id_string, band, out_hdr, list_file, gal_dir, swarp_dir )"""
 
                 # Rename reprojected files for SWarp
                 for list_file in os.listdir(swarp_dir):
@@ -526,7 +528,7 @@ def GALEX_Zero(fitsfile_dir, target_suffix):
 
 
 # Define function to reproject image and weight files for given source a new projection defined in a header file
-def GALEX_Reproject(id_string, band, list_file, gal_dir, swarp_dir):
+def GALEX_Reproject(id_string, band, out_hdr, list_file, gal_dir, swarp_dir):
 
     # To make sure we go in order and catch problems, we skip weight files in the first instance
     if '.wgt.fits' in list_file:
@@ -536,17 +538,15 @@ def GALEX_Reproject(id_string, band, list_file, gal_dir, swarp_dir):
     print('Reprojecting map '+list_file)
     os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
     try:
-        montage_wrapper.commands.mProject(os.path.join(gal_dir,band+'_Reproject_Temp',list_file),
-                                          os.path.join(swarp_dir,list_file),
-                                          os.path.join(gal_dir,id_string+'_HDR'))
+        out_img = reproject.reproject_exact(os.path.join(gal_dir,band+'_Reproject_Temp',list_file), out_hdr, parallel=False)[0]
+        astropy.io.fits.writeto(os.path.join(swarp_dir,list_file), data=out_img, header=out_hdr)
     except:
         return
 
     # Next, reproject the weight map; if that fails, delete the corresponding integration file
     try:
-        montage_wrapper.commands.mProject(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')),
-                                          os.path.join(swarp_dir,list_file.replace('.fits','.wgt.fits')),
-                                          os.path.join(gal_dir,id_string+'_HDR'))
+        out_img = reproject.reproject_exact(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')), out_hdr, parallel=False)[0]
+        astropy.io.fits.writeto(os.path.join(swarp_dir,list_file.replace('.fits','.wgt.fits')), data=out_img, header=out_hdr)
     except:
         if ('-int.fits' in list_file) and (os.path.exists(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')))):
             os.remove(os.path.join(gal_dir,band+'_Reproject_Temp',list_file.replace('.fits','.wgt.fits')))
