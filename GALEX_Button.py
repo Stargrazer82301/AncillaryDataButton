@@ -289,7 +289,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 location_pix = in_wcs.wcs_world2pix( np.array([[ np.float(ra), np.float(dec) ]]), 0 )[0]
                 pix_i, pix_j = np.int(np.round(location_pix[1])), np.int(np.round(location_pix[0]))
 
-                # Evalulate coverage at location, and proceed accordingly
+                # Evalulate coverage at location
                 if True in [ coord<=0 for coord in [ pix_i-10, pix_i+11, pix_j-10, pix_j+11 ] ]:
                     continue
                 try:
@@ -298,8 +298,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                     continue
                 if np.where(image_slice>0)[0].shape[0]>0:
                     coverage = True
+
+            # If no coverage, just record null file
             if not coverage:
                 print('No GALEX '+band_dict['band_long']+' coverage for '+name)
+                os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+bands_dict[band]['band_long']+'.null'))
                 gc.collect()
             elif coverage:
 
