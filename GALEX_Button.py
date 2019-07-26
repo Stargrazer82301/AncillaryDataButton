@@ -172,7 +172,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # If this source has already been processed in all bands, skip it
             if bands_done == len(bands_dict.keys()):
                 print('GALEX data for '+name+ ' already processed (if available); continuing to next target')
-                time_list.append(time_list)
+                time_list.append(time.time())
                 continue
         print('Processing GALEX data for target '+name)
 
@@ -200,7 +200,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # If query finds no matches, continue to next target
         if len(query_table)==0:
             print('No GALEX coverage for '+name+'; continuing to next target')
-            time_list.append(time_list)
+            time_list.append(time.time())
             os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+band+'.null'))
             continue
 
