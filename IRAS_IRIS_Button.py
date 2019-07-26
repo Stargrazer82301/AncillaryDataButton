@@ -216,7 +216,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         shutil.rmtree(temp_dir)
     except:
         RemoveCrawl(temp_dir)
-        print('Unable to fully tidy up temporarny directory; probably due to NFS locks on network drive')
+        print('Unable to fully tidy up temporary directory; probably due to NFS locks on network drive')
     print('All available IRAS-IRIS data acquired for all targets')
 
 
