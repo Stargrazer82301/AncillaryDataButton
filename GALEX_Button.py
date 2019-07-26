@@ -401,16 +401,13 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if len(name) > 1:
             print('Estimated time until GALEX data completed for all targets: '+time_est)
 
-    # Report completion
+    # Tidy up (best as we can), and report completion
+    gc.collect()
     try:
         shutil.rmtree(temp_dir)
     except:
-        try:
-            gc.collect()
-            time.sleep(10.0)
-            shutil.rmtree(temp_dir)
-        except:
-            print('Unable to tidy up temporarny directory; probably due to NFS locks on network drive')
+        ChrisFuncs.RemoveCrawl(temp_dir)
+        print('Unable to fully tidy up temporarny directory; probably due to NFS locks on network drive')
     print('All available GALEX imagery acquired for all targets')
 
 
