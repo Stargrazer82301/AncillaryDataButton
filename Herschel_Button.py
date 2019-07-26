@@ -10,10 +10,8 @@ import gc
 import re
 import copy
 import shutil
-import ssl
 import time
 import datetime
-import signal
 import subprocess
 import astropy.io.fits
 import astropy.wcs
@@ -155,7 +153,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                   '160':{'band':'160','instrument':'PACS','wavelength':'160um','filter':'PHOTRED','pix_size':4,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTRED','hdr_err_ext_name':'stDev'},
                   '250':{'band':'250','instrument':'SPIRE','wavelength':'250um','filter':'PSW','pix_size':6,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PSW','hdr_err_ext_name':'error'},
                   '350':{'band':'350','instrument':'SPIRE','wavelength':'350um','filter':'PMW','pix_size':8,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PMW','hdr_err_ext_name':'error'},
-                  '500':{'band':'500','instrument':'SPIRE','wavelength':'500um','filter':'PLW','pix_size':12,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PLW','hdr_err_ext_name':'error'}}
+                  '500':{'band':'500','instrument':'SPIRE','wavelength':'500um','filter':'PLW','pix_size':12,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PLW','hdr_err_ext_name':'error'}
+                  }
 
     # State map mode prefixes we care about
     req_obs_modes = ['SpirePhotoLargeScan','SpirePhotoSmallScan','PacsPhoto','SpirePacsParallel']
@@ -299,7 +298,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 continue
             if len(os.path.join(gal_dir,'Raw',band)) == 0:
                 continue
-            print('Commencing Montaging and SWarping of '+name+'_Herschel_'+band)
+            print('Commencing processing of '+name+'_Herschel_'+band)
 
             # Create processing directories
             os.chdir(os.path.join(gal_dir,'Raw',band))
@@ -493,7 +492,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             print('Completed processing '+name+'_Herschel_'+band+' uncertainty map')
 
 
-
         # In parallel, generate final standardised maps for each band
         pool = mp.Pool(processes=9)
         for key in bands_dict.keys():
@@ -578,7 +576,7 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         out_hdr.set('SIGUNIT', pix_unit, 'Unit of the map')
         out_hdr.set('TELESCOP', 'Herschel', 'Telescope that made this observation')
         out_hdr.set('FILTER', band, 'Filter used for this observation')
-        out_hdr.set('WVLNGTH', wavelength+'nm', 'Effective wavelength of observation')
+        out_hdr.set('WVLNGTH', wavelength, 'Effective wavelength of observation')
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
         out_hdr.set('SOFTWARE', 'The Ancillary Data Button',
                     'This cutout was produced using the Ancillary Data Button, written by Chris Clark, available from' \
@@ -625,7 +623,6 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
                 thumb_out.close()
             except:
                 print('Failed making thumbnail for '+name)
-                pdb.set_trace()
 
         # Clean memory before finishing
         gc.collect()
