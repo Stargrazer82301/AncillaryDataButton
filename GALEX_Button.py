@@ -173,7 +173,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # If this source has already been processed in all bands, skip it
             if bands_done == len(bands_dict.keys()):
                 print('GALEX data for '+name+ ' already processed (if available); continuing to next target')
-                time_list.append(time_list)
+                time_list.append(time.time())
                 continue
         print('Processing GALEX data for target '+name)
 
@@ -201,7 +201,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # If query finds no matches, continue to next target
         if len(query_table)==0:
             print('No GALEX coverage for '+name+'; continuing to next target')
-            time_list.append(time_list)
+            time_list.append(time.time())
             os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+band+'.null'))
             continue
 
@@ -290,7 +290,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 location_pix = in_wcs.wcs_world2pix( np.array([[ np.float(ra), np.float(dec) ]]), 0 )[0]
                 pix_i, pix_j = np.int(np.round(location_pix[1])), np.int(np.round(location_pix[0]))
 
-                # Evalulate coverage at location, and proceed accordingly
+                # Evalulate coverage at location
                 if True in [ coord<=0 for coord in [ pix_i-10, pix_i+11, pix_j-10, pix_j+11 ] ]:
                     continue
                 try:
@@ -299,8 +299,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                     continue
                 if np.where(image_slice>0)[0].shape[0]>0:
                     coverage = True
+
+            # If no coverage, just record null file
             if not coverage:
                 print('No GALEX '+band_dict['band_long']+' coverage for '+name)
+                os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+bands_dict[band]['band_long']+'.null'))
                 gc.collect()
             elif coverage:
 
@@ -400,16 +403,13 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if len(name) > 1:
             print('Estimated time until GALEX data completed for all targets: '+time_est)
 
-    # Report completion
+    # Tidy up (best as we can), and report completion
+    gc.collect()
     try:
         shutil.rmtree(temp_dir)
     except:
-        try:
-            gc.collect()
-            time.sleep(10.0)
-            shutil.rmtree(temp_dir)
-        except:
-            print('Unable to tidy up temporarny directory; probably due to NFS locks on network drive')
+        ChrisFuncs.RemoveCrawl(temp_dir)
+        print('Unable to fully tidy up temporarny directory; probably due to NFS locks on network drive')
     print('All available GALEX imagery acquired for all targets')
 
 
