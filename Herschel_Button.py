@@ -610,7 +610,7 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         # Make thumbnail image of cutout
         if thumbnails:
             try:
-                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits'))
+                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'))
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
                 thumb_out.tick_labels.hide()
