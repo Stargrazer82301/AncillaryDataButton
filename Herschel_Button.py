@@ -575,7 +575,7 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         out_hdr.set('COORDSYS', 'IRCS', 'Coordinate reference frame for the RA and DEC')
         out_hdr.set('SIGUNIT', pix_unit, 'Unit of the map')
         out_hdr.set('TELESCOP', 'Herschel', 'Telescope that made this observation')
-        out_hdr.set('FILTER', band, 'Filter used for this observation')
+        out_hdr.set('FILTER', band_dict['filter'], 'Filter used for this observation')
         out_hdr.set('WVLNGTH', wavelength, 'Effective wavelength of observation')
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
         out_hdr.set('SOFTWARE', 'The Ancillary Data Button',
@@ -606,9 +606,6 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         # Create hdulist and save to file
         out_hdulist = astropy.io.fits.HDUList([image_out_hdu, error_out_hdu])
         out_hdulist.writeto(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'), overwrite=True)
-
-        # Write output FITS file
-        astropy.io.fits.writeto(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'), data=out_img, header=out_hdr, overwrite=True)
 
         # Make thumbnail image of cutout
         if thumbnails:
