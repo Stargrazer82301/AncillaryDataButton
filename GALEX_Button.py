@@ -202,7 +202,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if len(query_table)==0:
             print('No GALEX coverage for '+name+'; continuing to next target')
             time_list.append(time.time())
-            os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+band+'.null'))
+            for band in bands_dict.keys():
+                os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+band+'.null'))
             continue
 
         # Grab fits files URLs
@@ -210,7 +211,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         for i in range(len(query_table)):
             galex_urls.append(query_table[i]['accessURL'])
 
-        # In parallel, download GALEX fields (NB: GALEX server will not permit more than 5 simultaneous wget downloads)
+        # In parallel, download GALEX fields
         print('Downloading '+str(len(galex_urls))+' GALEX fields for '+name)
         dl_complete = False
         dl_fail_count = 0
@@ -248,6 +249,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 # Uncompress data (otherwise Montage will fill /tmp/ directory by uncompressing things itself)
                 if '.fits.gz' in raw_file:
                     os.system('gzip -d '+os.path.join(gal_dir,'Download',raw_file))
+
+        # Record null file for any band that doens't have data
+        for band in bands_dict.keys():
+            if band not in bands_dict_gal.keys():
+                os.system('touch '+os.path.join(temp_dir,'.'+name+'_GALEX_'+band+'.null'))
 
 
 
