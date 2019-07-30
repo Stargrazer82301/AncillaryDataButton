@@ -537,7 +537,7 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         # Read in image map
         in_img, in_hdr = astropy.io.fits.getdata(os.path.join(gal_dir,name+'_Herschel_'+band+'.fits.gz'), header=True)
         in_wcs = astropy.wcs.WCS(in_hdr)
-        in_pix_width_arcsec = 3600.0 * np.abs(np.max(in_wcs.pixel_scale_matrix))
+        in_pix_width_arcsec = 3600.0 * astropy.wcs.utils.proj_plane_pixel_scales(in_wcs).mean()
         out_img = in_img.copy()
 
         # Read in error map

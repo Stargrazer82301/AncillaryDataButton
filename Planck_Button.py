@@ -263,7 +263,7 @@ def Planck_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnai
         # Read in map
         in_img, in_hdr = astropy.io.fits.getdata(os.path.join(temp_dir,name+'_Planck_'+wavelength+'.fits'), header=True)
         in_wcs = astropy.wcs.WCS(in_hdr)
-        pix_width_arcsec = 3600.0 * np.abs( np.max( in_wcs.pixel_scale_matrix ) )
+        pix_width_arcsec = 3600.0 * astropy.wcs.utils.proj_plane_pixel_scales(in_wcs).mean()
         out_img = in_img.copy()
 
         """# Set non-coverage pixels to be nan

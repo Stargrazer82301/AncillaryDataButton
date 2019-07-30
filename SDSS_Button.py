@@ -367,7 +367,7 @@ def SDSS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
         # Read in map
         in_img, in_hdr = astropy.io.fits.getdata(os.path.join(temp_dir,name+'_SDSS_'+band+'.fits'), header=True)
         in_wcs = astropy.wcs.WCS(in_hdr)
-        in_pix_width_arcsec = 3600.0 * np.abs( np.max( in_wcs.pixel_scale_matrix ) )
+        in_pix_width_arcsec = 3600.0 * astropy.wcs.utils.proj_plane_pixel_scales(in_wcs).mean()
         out_img = in_img.copy()
 
         # Add minimum pixel value to image, to prevent NaNs from appearing later
