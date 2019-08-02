@@ -22,6 +22,7 @@ import aplpy
 import wget
 import ChrisFuncs
 import ChrisFuncs.Fits
+import ChrisFuncs.Coadd
 plt.ioff()
 
 
@@ -179,13 +180,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
         # Create field processing dirctories (deleting any prior), and set appropriate Python (ie, SWarp) working directory
         gal_dir = os.path.join(temp_dir,str(name))+'/'
+
         if os.path.exists(gal_dir):
             shutil.rmtree(gal_dir)
         os.makedirs(gal_dir)
         os.makedirs(os.path.join(gal_dir,'Download'))
         os.chdir(os.path.join(gal_dir,'Download'))
-
-
 
         # Perform query (removing pre-existing query file, if present)
         print('Querying GALEX MAST server using SIA protocol')
@@ -326,12 +326,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 pix_width_arcsec = 2.5
                 out_hdr = ChrisFuncs.Fits.FitsHeader(ra, dec, width, pix_width_arcsec)
 
-                # If more than one image file, commence background-matching
-                mosaic_count = len(raw_files)
-                if mosaic_count>1:
-                    print('Matching background of '+id_string+' maps')
-                    GALEX_Zero(os.path.join(gal_dir, band+'_Reproject_Temp'), '-int.fits')
-
                 # Reproject images (dooing individually, instead of using mProjExec, to avoid Montage arbitrarily skipping some images)
                 print('Reprojecting '+id_string+' maps')
                 os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
@@ -351,6 +345,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 for list_file in os.listdir(swarp_dir):
                     if '.fits.gz.fits' in list_file:
                         raise Exception('Compressed files found in SWarp directory; something has gone wrong')
+
+                # If more than one image file, commence background-matching
+                mosaic_count = len(raw_files)
+                if mosaic_count>1:
+                    print('Matching background of '+id_string+' maps')
+                    ChrisFuncs.Coadd.LevelFITS(swarp_dir, '-int.fits', convfile_dir=os.path.join(gal_dir,band+'_Convolve_Temp'))
 
                 # Use SWarp to co-add images weighted by their error maps
                 print('Mosaicing '+id_string+' maps')
@@ -375,7 +375,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                                   '-VERBOSE_TYPE', 'QUIET',
                                   '-VMEM_MAX', '4095',
                                   '-WEIGHT_TYPE', 'MAP_WEIGHT'])"""
-                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK N -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
+                os.system('swarp *int.fits -IMAGEOUT_NAME '+id_string+'_SWarp.fits -WEIGHT_SUFFIX .wgt.fits -CENTER_TYPE MANUAL -CENTER '+str(ra)+','+str(dec)+' -COMBINE_TYPE WEIGHTED -COMBINE_BUFSIZE 2048 -IMAGE_SIZE '+image_width_pixels+','+image_width_pixels+' -MEM_MAX 4096 -NTHREADS 4 -RESCALE_WEIGHTS N -RESAMPLE N -SUBTRACT_BACK '+swarp_bg+' -VERBOSE_TYPE QUIET -VMEM_MAX 4095 -WEIGHT_TYPE MAP_WEIGHT')
 
                 # Remove null values, correct for pixel rescaling, and save finalised map to output directory
                 in_image, in_header = astropy.io.fits.getdata(os.path.join(swarp_dir, id_string+'_SWarp.fits'), header=True)
@@ -390,8 +390,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('Completed mosaicing of '+id_string)
                 shutil.rmtree(swarp_dir, ignore_errors=True)
                 gc.collect()
-
-
 
         # In parallel, generate final standardised maps for each band
         pool = mp.Pool(processes=2)
@@ -416,6 +414,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
     except:
         ChrisFuncs.RemoveCrawl(temp_dir)
         print('Unable to fully tidy up temporary directory; probably due to NFS locks on network drive')
+    print('Total time elapsed: '+str((time.time()-time_list[0])/3600.0)+' hours')
     print('All available GALEX imagery acquired for all targets')
 
 
@@ -477,59 +476,6 @@ def GALEX_Clean(raw_file, raw_dir, reproj_dir, conv_dir, band_dict):
     astropy.io.fits.writeto(os.path.join(reproj_dir, raw_file.replace('.fits','.wgt.fits')), exp_image, header=in_header)
 
 
-
-# Define function to set a set of maps to the same level
-def GALEX_Zero(fitsfile_dir, target_suffix):
-
-    # Define sill ysubfunction that fits flat plane to image, to find level
-    def GALEX_Level_Chisq(level_params, image):
-        level = level_params['level'].value
-        chi = image - level
-        chisq = chi**2.0
-        return chisq
-
-    # Make list of files in target directory that have target suffix
-    allfile_list = os.listdir(fitsfile_dir)
-    fitsfile_list = []
-    for allfile in allfile_list:
-        if target_suffix in allfile:
-            fitsfile_list.append(allfile)
-
-    # Loop over each file
-    for i in range(0, len(fitsfile_list)):
-        print('Matching backgorund of map '+fitsfile_list[i])
-
-        # Read in corresponding map from directory containing convolved images
-        image_conv = astropy.io.fits.getdata(os.path.join(fitsfile_dir,fitsfile_list[i]))
-
-        # Fit to level of image; save if first image, otherwise calculate appropriate offset
-        level_params = lmfit.Parameters()
-        level_params.add('level', value=np.nanmedian(image_conv), vary=True)
-        image_conv_clipped = ChrisFuncs.SigmaClip(image_conv, median=False, sigma_thresh=3.0)[2]
-        level_result = lmfit.minimize(GALEX_Level_Chisq, level_params, args=(image_conv_clipped.flatten(),))
-        level = level_result.params['level'].value
-        if i==0:
-            level_ref = level
-            continue
-        average_offset = level_ref - level
-
-        # Read in unconvolved file, and apply offset
-        image_in, header_in = astropy.io.fits.getdata(os.path.join(fitsfile_dir,fitsfile_list[i]), header=True)
-        image_out = image_in + average_offset
-
-        # Save corrected file
-        save_success = False
-        save_fail = 0
-        while not save_success:
-            try:
-                astropy.io.fits.writeto(os.path.join(fitsfile_dir,fitsfile_list[i]), image_out, header=header_in, overwrite=True)
-                save_success = True
-            except:
-                print('Unable to save corrected file '+fitsfile_list[i]+'; reattempting')
-                save_fail += 1
-                time.sleep(10)
-                if save_fail>=5:
-                    pdb.set_trace()
 
 
 
