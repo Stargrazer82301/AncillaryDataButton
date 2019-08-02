@@ -396,9 +396,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                             break
 
                     # Handle timeouts and other failures
-                    if mBgExec_fail_count>5:
+                    if mBgExec_fail_count>1:
                         print('Background matching with Montage has failed '+str(mBgExec_fail_count)+' time(s); reattempting')
-                    if mBgExec_fail == True and mBgExec_success == False and mBgExec_fail_count>=3:
+                    if mBgExec_fail == True and mBgExec_success == False and mBgExec_fail_count>=5:
                         mBgExec_uberfail = True
                         print('Background matching with Montage has failed 5 times; proceeding directly to co-additon')
                         try:
@@ -407,9 +407,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                             'Background matching subprocess appears to have imploded; no task to kill'
                         break
             if mBgExec_uberfail:
-                for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'Img_Maps')):
+                raise Exception('Background matching with Montage has failed utterly')
+                """for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'Img_Maps')):
                     if '_HSA_Img.fits' in listfile:
-                        shutil.move(listfile, os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
+                        shutil.move(listfile, os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))"""
 
 
 
@@ -424,10 +425,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # Sort out daft filename differences between image maps and error maps
             for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp')):
                 os.rename( os.path.join(gal_dir,'Raw',band,'SWarp_Temp',listfile), os.path.join(gal_dir,'Raw',band,'SWarp_Temp',listfile.replace('_Img.fits','.fits')) )
-            """
+
             # Perform least-squares plane fitting to match image levels
             ChrisFuncs.Coadd.LevelFITS(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'), 'Img.fits', convfile_dir=False)
-            """
+
+            pdb.set_trace()
             # Use SWarp to co-add images weighted by their coverage maps
             print('Co-adding '+name+'_Herschel_'+band+' maps')
             os.chdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
