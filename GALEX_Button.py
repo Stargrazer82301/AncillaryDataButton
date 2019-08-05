@@ -596,14 +596,18 @@ def GALEX_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnail
 def GALEX_wget(tile_url, tile_filename):
     if os.path.exists(tile_filename):
         os.remove(tile_filename)
+    failure_count = 1
     success = False
     while success==False:
+        if failure_count >= 5:
+            raise Exception('Failed utterly to download GALEX data '+tile_filename+' from MAST')
         try:
             wget.download(tile_url, out=tile_filename)
             success = True
         except:
             print('Failure! Retrying acquistion of '+tile_url)
-            time.sleep(0.1)
+            time.sleep(10)
+            failure_count += 1
             success = False
 
 
