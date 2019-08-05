@@ -195,14 +195,16 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if len(name) > 1:
             print('Estimated time until Planck data completed for all targets: '+time_est)
 
-    # Tidy up (best as we can), and report completion
-    gc.collect()
-    try:
-        shutil.rmtree(temp_dir)
-    except:
-        ChrisFuncs.RemoveCrawl(temp_dir)
-        print('Unable to fully tidy up temporary directory; probably due to NFS locks on network drive')
-    print('All available Planck data acquired for all targets')
+        # Tidy up (best as we can)
+        gc.collect()
+        try:
+            shutil.rmtree(temp_dir)
+        except:
+            ChrisFuncs.RemoveCrawl(temp_dir)
+            print('Unable to fully tidy up temporary directory; probably due to NFS locks on network drive')
+
+    # Report completion
+    print('Total time elapsed: '+str((time.time()-time_list[0])/3600.0)+' hours')
 
 
 
