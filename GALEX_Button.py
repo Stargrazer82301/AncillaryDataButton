@@ -326,7 +326,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 pix_width_arcsec = 2.5
                 out_hdr = ChrisFuncs.Fits.FitsHeader(ra, dec, width, pix_width_arcsec)
 
-                # Reproject images (dooing individually, instead of using mProjExec, to avoid Montage arbitrarily skipping some images)
+                # Reproject images (doing individually, instead of using mProjExec, to avoid Montage arbitrarily skipping some images)
                 print('Reprojecting '+id_string+' maps')
                 os.chdir(os.path.join(gal_dir, band+'_Reproject_Temp'))
                 joblib.Parallel( n_jobs=int(0.75*mp.cpu_count()) )\
@@ -562,7 +562,7 @@ def GALEX_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnail
         # Construct WCS system, and append to header
         cutout_wcs = astropy.wcs.WCS(naxis=2)
         cutout_wcs.wcs.crpix = [in_hdr['CRPIX1'], in_hdr['CRPIX2']]
-        cutout_wcs.wcs.cdelt = [np.mean([in_hdr['CD1_1'],in_hdr['CD1_2']]), np.mean([in_hdr['CD2_1'],in_hdr['CD2_2']])]
+        cutout_wcs.wcs.cdelt = [-1.0*astropy.wcs.utils.proj_plane_pixel_scales(in_wcs)[0], astropy.wcs.utils.proj_plane_pixel_scales(in_wcs)[1]]
         cutout_wcs.wcs.crval = [in_hdr['CRVAL1'], in_hdr['CRVAL2']]
         cutout_wcs.wcs.ctype = [in_hdr['CTYPE1'], in_hdr['CTYPE2']]
         cutout_wcs_header = cutout_wcs.to_header()
