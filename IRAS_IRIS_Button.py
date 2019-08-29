@@ -280,17 +280,22 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         os.remove(mCoverageCheck_tablepath)
     montage_wrapper.mCoverageCheck(mImgtbl_tablepath, mCoverageCheck_tablepath, ra=ra, dec=dec, mode='box', width=width)
 
-    # Read in coveage tables to identify what plates we need; if no coverage, write null output file and stop here
+    # Read in coveage tables; if no coverage, write null output file and stop here
     print('Reprojecting IRAS-IRIS '+bands_dict[band]['wavelength']+'um plates that cover '+name)
     mCoverageCheck_table = np.genfromtxt(mCoverageCheck_tablepath, skip_header=3, dtype=None, encoding=None)
-    if len(mCoverageCheck_table) == 0:
+    if mCoverageCheck_table.size == 0:
         os.system('touch '+os.path.join(temp_dir,'.'+name+'_IRAS-IRIS_'+band+'.null'))
         print('No IRAS-IRIS '+band+'um data for '+name)
         return
     reproj_dir = os.path.join(temp_dir,'Reproject',band)
     if not os.path.exists(reproj_dir):
         os.makedirs(reproj_dir)
-    raw_paths = [str(mCoverageCheck_table['f36'][i]) for i in range(len(mCoverageCheck_table['f36']))]
+
+    # Extract paths from coverage table, with handling for weird astropy behavior when table has only one row
+    if mCoverageCheck_table.size == 1:
+        raw_paths = [mCoverageCheck_table['f36'].tolist()]
+    else:
+        raw_paths = [str(mCoverageCheck_table['f36'][i]) for i in range(mCoverageCheck_table['f36'].size)]
     reproj_paths = [raw_paths[i].replace(raw_dir,reproj_dir) for i in range(len(raw_paths))]
     reproj_hdr = FitsHeader(ra, dec, width, pix_size)
 
