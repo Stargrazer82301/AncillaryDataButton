@@ -180,11 +180,13 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
         # Create field processing dirctories (deleting any prior), and set appropriate Python (ie, SWarp) working directory
         gal_dir = os.path.join(temp_dir,str(name))+'/'
-
         if os.path.exists(gal_dir):
-            shutil.rmtree(gal_dir)
-        os.makedirs(gal_dir)
-        os.makedirs(os.path.join(gal_dir,'Download'))
+            try:
+                shutil.rmtree(gal_dir)
+            except:
+                ChrisFuncs.RemoveCrawl(gal_dir)
+        if not os.path.exists(os.path.join(gal_dir,'Download')):
+            os.makedirs(os.path.join(gal_dir,'Download'))
         os.chdir(os.path.join(gal_dir,'Download'))
 
         # Perform query (removing pre-existing query file, if present)
