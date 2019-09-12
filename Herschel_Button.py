@@ -19,6 +19,7 @@ import astropy.io.votable
 import aplpy
 import wget
 import ChrisFuncs
+import ChrisFuncs.Coadd
 plt.ioff()
 
 
@@ -192,14 +193,15 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # Create field processing dirctories (deleting any prior)
         gal_dir = os.path.join(temp_dir,str(name))+'/'
         if os.path.exists(gal_dir):
-            shutil.rmtree(gal_dir)
-        os.makedirs(gal_dir)
-        os.makedirs(os.path.join(gal_dir,'Raw'))
+            ChrisFuncs.RemoveCrawl(gal_dir)
+        if not os.path.exists(os.path.join(gal_dir,'Raw')):
+            os.makedirs(os.path.join(gal_dir,'Raw'))
         os.chdir(os.path.join(gal_dir,'Raw'))
 
         # Create band-specific directories
         for band in bands_dict.keys():
-            os.makedirs(os.path.join(gal_dir,'Raw',band))
+            if not os.path.exists(os.path.join(gal_dir,'Raw',band)):
+                os.makedirs(os.path.join(gal_dir,'Raw',band))
 
 
 
@@ -288,7 +290,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Cov.fits')), cov_map, header=cov_header)
                 err_map, err_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
                 err_map[where_zero] = np.NaN
-                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Error.fits')), img_map, header=err_header)
+                astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Error.fits')), err_map, header=err_header)
 
 
 
@@ -429,7 +431,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # Perform least-squares plane fitting to match image levels
             ChrisFuncs.Coadd.LevelFITS(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'), 'Img.fits', convfile_dir=False)
 
-            pdb.set_trace()
             # Use SWarp to co-add images weighted by their coverage maps
             print('Co-adding '+name+'_Herschel_'+band+' maps')
             os.chdir(os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
