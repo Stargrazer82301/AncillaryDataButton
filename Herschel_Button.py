@@ -273,6 +273,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                             if bands_dict[band]['hdr_blueband_kwrd'] not in list_hdr['BLUEBAND']:
                                 os.remove(os.path.join(gal_dir,'Raw',listfile))
                                 continue
+
+                        # Skip dud PACS calibration(?) maps
+                        if list_hdr['OBSERVER'][-4:].lower() == 'pacs':
+                            os.remove(os.path.join(gal_dir,'Raw',listfile))
+                            continue
                         shutil.copy2(os.path.join(gal_dir,'Raw',listfile), os.path.join(gal_dir,'Raw',band))
                         os.remove(os.path.join(gal_dir,'Raw',listfile))
 
