@@ -149,12 +149,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         os.mkdir(temp_dir)
 
     # State band information
-    bands_dict = {'70':{'band':'70','instrument':'PACS','wavelength':'70um','filter':'PHOTBLUE','pix_size':2,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTBLUE','hdr_err_ext_name':'stDev'},
-                  '100':{'band':'100','instrument':'PACS','wavelength':'100um','filter':'PHOTGREEN','pix_size':3,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTGREEN','hdr_err_ext_name':'stDev'},
-                  '160':{'band':'160','instrument':'PACS','wavelength':'160um','filter':'PHOTRED','pix_size':4,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTRED','hdr_err_ext_name':'stDev'},
-                  '250':{'band':'250','instrument':'SPIRE','wavelength':'250um','filter':'PSW','pix_size':6,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PSW','hdr_err_ext_name':'error'},
-                  '350':{'band':'350','instrument':'SPIRE','wavelength':'350um','filter':'PMW','pix_size':8,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PMW','hdr_err_ext_name':'error'},
-                  '500':{'band':'500','instrument':'SPIRE','wavelength':'500um','filter':'PLW','pix_size':12,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PLW','hdr_err_ext_name':'error'}
+    bands_dict = {'70':{'band':'70','instrument':'PACS','wavelength':'70um','filter':'PHOTBLUE','pix_size':2,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTBLUE','hdr_blueband_kwrd':'blue1','hdr_err_ext_name':'stDev'},
+                  '100':{'band':'100','instrument':'PACS','wavelength':'100um','filter':'PHOTGREEN','pix_size':3,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTGREEN','hdr_blueband_kwrd':'blue2','hdr_err_ext_name':'stDev'},
+                  '160':{'band':'160','instrument':'PACS','wavelength':'160um','filter':'PHOTRED','pix_size':4,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTRED','hdr_blueband_kwrd':False,'hdr_err_ext_name':'stDev'},
+                  '250':{'band':'250','instrument':'SPIRE','wavelength':'250um','filter':'PSW','pix_size':6,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PSW','hdr_blueband_kwrd':False,'hdr_err_ext_name':'error'},
+                  '350':{'band':'350','instrument':'SPIRE','wavelength':'350um','filter':'PMW','pix_size':8,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PMW','hdr_blueband_kwrd':False,'hdr_err_ext_name':'error'},
+                  '500':{'band':'500','instrument':'SPIRE','wavelength':'500um','filter':'PLW','pix_size':12,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PLW','hdr_blueband_kwrd':False,'hdr_err_ext_name':'error'}
                   }
 
     # State map mode prefixes we care about
@@ -256,14 +256,23 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         dl_pool.close()
         dl_pool.join()
 
-        # Loop over bands, and downloaded files (skipping folders), to move files to band-specific directories
+        # Loop over bands, and downloaded files (skipping folders), for sorting files into separate folders
         for band in bands_dict.keys():
+            prev_hdr_filenames = []
             for listfile in os.listdir(os.path.join(gal_dir,'Raw')):
                 if '.fits' not in listfile:
                     continue
-                list_hdr = astropy.io.fits.getheader( os.path.join(gal_dir,'Raw',listfile), ext=0 )
+
+                # Determine what band this is
+                list_hdr = astropy.io.fits.getheader(os.path.join(gal_dir,'Raw',listfile), ext=0)
                 if list_hdr['INSTRUME'] == bands_dict[band]['instrument']:
                     if list_hdr[bands_dict[band]['hdr_inst_card_kwrd']] == bands_dict[band]['hdr_inst_card_entry']:
+
+                        # Handle the fact that 70um and 100um are hard to tell apart in headers
+                        if bands_dict[band]['hdr_blueband_kwrd'] != False:
+                            if bands_dict[band]['hdr_blueband_kwrd'] not in list_hdr['BLUEBAND']:
+                                os.remove(os.path.join(gal_dir,'Raw',listfile))
+                                continue
                         shutil.copy2(os.path.join(gal_dir,'Raw',listfile), os.path.join(gal_dir,'Raw',band))
                         os.remove(os.path.join(gal_dir,'Raw',listfile))
 
@@ -679,4 +688,4 @@ def Handler(signum, frame):
 
 
 
-#Run(23.4621, +30.6599, 1.0, name='M33', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M33/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
+Run(210.8025, +54.34906, 1.0, name='M101', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M101/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
