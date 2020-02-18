@@ -278,6 +278,14 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                         if list_hdr['OBSERVER'][-4:].lower() == 'pacs':
                             os.remove(os.path.join(gal_dir,'Raw',listfile))
                             continue
+
+                        # Check that we havne't already grabbed a duplicate of this map; if not, move it ot band-specific directory
+                        if 'FILENAME' in list_hdr.keys():
+                            if list_hdr['FILENAME'] in prev_hdr_filenames:
+                                os.remove(os.path.join(gal_dir,'Raw',listfile))
+                                continue
+                            else:
+                                prev_hdr_filenames.append(list_hdr['FILENAME'])
                         shutil.copy2(os.path.join(gal_dir,'Raw',listfile), os.path.join(gal_dir,'Raw',band))
                         os.remove(os.path.join(gal_dir,'Raw',listfile))
 
