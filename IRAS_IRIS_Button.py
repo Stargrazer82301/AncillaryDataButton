@@ -414,7 +414,7 @@ def IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails
             thumb_out.tick_labels.hide()
             thumb_out.ticks.hide()
             thumb_out.show_markers(np.array([float(ra)]), np.array([float(dec)]), marker='+', s=500, lw=2.5, edgecolor='#01DF3A')
-            thumb_out.save(os.path.join(out_dir,name+'_IRAS-IRIS_'+wavelength+'.jpg'), dpi=125)
+            thumb_out.save(os.path.join(out_dir,name+'_IRAS-IRIS_'+wavelength+'.png'), dpi=125)
             thumb_out.close()
 
         # Clean memory before finishing
