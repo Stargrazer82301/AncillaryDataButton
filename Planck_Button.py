@@ -133,15 +133,15 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         os.mkdir(temp_dir)
 
     # Define dictionary of band properties
-    bands_dict = {'Planck030':{'band_name':'Planck 030','freq':'30GHz','wavelength':'10600','pix_size':204.0,'beam_area':1188.945,'units':'K(cmb)','instrument':'LFI','conversion':0.979328*24.845597},
-                  'Planck044':{'band_name':'Planck 044','freq':'44GHz','wavelength':'6810','pix_size':204.0,'beam_area':832.168,'units':'K(cmb)','instrument':'LFI','conversion':0.95121302*59.666236},
-                  'Planck070':{'band_name':'Planck 070','freq':'70GHz','wavelength':'4260','pix_size':204.0,'beam_area':200.519,'units':'K(cmb)','instrument':'LFI','conversion':0.88140690*151.73238},
-                  'Planck100':{'band_name':'Planck 100','freq':'100GHz','wavelength':'3000','pix_size':204.0,'beam_area':105.777,'units':'K(cmb)','instrument':'HFI','conversion':0.76581996*306.81118},
-                  'Planck143':{'band_name':'Planck 143','freq':'143GHz','wavelength':'2100','pix_size':102.0,'beam_area':59.952,'units':'K(cmb)','instrument':'HFI','conversion':0.59714682*627.39818},
-                  'Planck217':{'band_name':'Planck 217','freq':'217GHz','wavelength':'1380','pix_size':102.0,'beam_area':28.426,'units':'K(cmb)','instrument':'HFI','conversion':0.31573332*1444.7432},
-                  'Planck353':{'band_name':'Planck 353','freq':'353GHz','wavelength':'850','pix_size':102.0,'beam_area':26.653,'units':'K(cmb)','instrument':'HFI','conversion':0.071041398*3823.1434},
-                  'Planck545':{'band_name':'Planck 545','freq':'545GHz','wavelength':'550','pix_size':102.0,'beam_area':26.305,'units':'MJy/sr','instrument':'HFI'},
-                  'Planck857':{'band_name':'Planck 857','freq':'857GHz','wavelength':'350','pix_size':102.0,'beam_area':23.985,'units':'MJy/sr','instrument':'HFI'}}
+    bands_dict = {'Planck030':{'band_name':'Planck 030 I','freq':'30GHz','wavelength':'10600','pix_size':204.0,'beam_area':1188.945,'units':'K(cmb)','instrument':'LFI','conversion':0.979328*24.845597},
+                  'Planck044':{'band_name':'Planck 044 I','freq':'44GHz','wavelength':'6810','pix_size':204.0,'beam_area':832.168,'units':'K(cmb)','instrument':'LFI','conversion':0.95121302*59.666236},
+                  'Planck070':{'band_name':'Planck 070 I','freq':'70GHz','wavelength':'4260','pix_size':204.0,'beam_area':200.519,'units':'K(cmb)','instrument':'LFI','conversion':0.88140690*151.73238},
+                  'Planck100':{'band_name':'Planck 100 I','freq':'100GHz','wavelength':'3000','pix_size':204.0,'beam_area':105.777,'units':'K(cmb)','instrument':'HFI','conversion':0.76581996*306.81118},
+                  'Planck143':{'band_name':'Planck 143 I','freq':'143GHz','wavelength':'2100','pix_size':102.0,'beam_area':59.952,'units':'K(cmb)','instrument':'HFI','conversion':0.59714682*627.39818},
+                  'Planck217':{'band_name':'Planck 217 I','freq':'217GHz','wavelength':'1380','pix_size':102.0,'beam_area':28.426,'units':'K(cmb)','instrument':'HFI','conversion':0.31573332*1444.7432},
+                  'Planck353':{'band_name':'Planck 353 I','freq':'353GHz','wavelength':'850','pix_size':102.0,'beam_area':26.653,'units':'K(cmb)','instrument':'HFI','conversion':0.071041398*3823.1434},
+                  'Planck545':{'band_name':'Planck 545 I','freq':'545GHz','wavelength':'550','pix_size':102.0,'beam_area':26.305,'units':'MJy/sr','instrument':'HFI'},
+                  'Planck857':{'band_name':'Planck 857 I','freq':'857GHz','wavelength':'350','pix_size':102.0,'beam_area':23.985,'units':'MJy/sr','instrument':'HFI'}}
 
     # Record time taken
     time_list = [time.time()]
