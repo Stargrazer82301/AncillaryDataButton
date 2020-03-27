@@ -181,7 +181,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             # If this source has already been processed in all bands, skip it
             if bands_done == len(bands_dict.keys()):
                 print('IRAS-ISSA data for '+name+ ' already generated; continuing to next target')
-                time_list.append(time_list)
+                time_list.append(time.time())
                 continue
         print('Processing IRAS-ISSA data for target '+name)
 
