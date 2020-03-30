@@ -235,16 +235,12 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
         try:
             astropy.io.fits.info(query_filename)
         except Exception as exception:
-            if exception.message=='Empty or corrupt FITS file':
-                pdb.set_trace()
-            else:
-                pdb.set_trace()
+            query_success = False
 
     # If no data available, generate null file and report failure
     if not query_success:
         os.system('touch '+os.path.join(temp_dir,'.'+name+'_Planck_'+bands_dict[band]['wavelength']+'.null'))
         print('No Planck '+band+' data for '+name)
-        pdb.set_trace()
 
 
 
@@ -348,12 +344,16 @@ def Planck_wget(tile_url, tile_filename):
     if os.path.exists(tile_filename):
         os.remove(tile_filename)
     success = False
+    fail_count = 0
     while success==False:
+        if fail_count == 10:
+            return
         try:
             wget.download(tile_url, out=tile_filename)
             success = True
         except:
-            time.sleep(0.1)
+            fail_count += 1
+            time.sleep(10.0)
             success = False
 
 
