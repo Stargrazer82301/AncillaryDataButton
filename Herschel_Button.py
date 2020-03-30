@@ -150,7 +150,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
     # State band information
     bands_dict = {'70':{'band':'70','instrument':'PACS','wavelength':'70um','filter':'PHOTBLUE','pix_size':2,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTBLUE','hdr_blueband_kwrd':'blue1','hdr_err_ext_name':'stDev'},
-                  '100':{'band':'100','instrument':'PACS','wavelength':'100um','filter':'PHOTGREEN','pix_size':3,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTGREEN','hdr_blueband_kwrd':'blue2','hdr_err_ext_name':'stDev'},
+                  '100':{'band':'100','instrument':'PACS','wavelength':'100um','filter':'PHOTGREEN','pix_size':3,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTBLUE','hdr_blueband_kwrd':'blue2','hdr_err_ext_name':'stDev'},
                   '160':{'band':'160','instrument':'PACS','wavelength':'160um','filter':'PHOTRED','pix_size':4,'hdr_inst_card_kwrd':'CAMERA','hdr_inst_card_entry':'PHOTRED','hdr_blueband_kwrd':False,'hdr_err_ext_name':'stDev'},
                   '250':{'band':'250','instrument':'SPIRE','wavelength':'250um','filter':'PSW','pix_size':6,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PSW','hdr_blueband_kwrd':False,'hdr_err_ext_name':'error'},
                   '350':{'band':'350','instrument':'SPIRE','wavelength':'350um','filter':'PMW','pix_size':8,'hdr_inst_card_kwrd':'DETECTOR','hdr_inst_card_entry':'PMW','hdr_blueband_kwrd':False,'hdr_err_ext_name':'error'},
@@ -211,7 +211,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         query_fail_count = 0
         while query_success == False:
             if query_fail_count>=10:
-                break
+                raise Exception('HSA query failing consistently; maybe HSA is down, or something else has gone wrong')
             try:
                 query_url = 'http://archives.esac.esa.int/hsa/aio/jsp/siap.jsp?POS='+str(ra)+','+str(dec)+'&SIZE='+str(width)+'&INTERSECT=OVERLAPS'
                 query_filename = os.path.join(temp_dir,name,str(name)+'.vot')
@@ -222,6 +222,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
             except:
                 print('HSA query failed; reattempting')
                 query_fail_count += 1
+                time.sleep(60)
         if not os.path.exists(query_filename):
             query_success=False
 
@@ -271,7 +272,6 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                         # Handle the fact that 70um and 100um are hard to tell apart in headers
                         if bands_dict[band]['hdr_blueband_kwrd'] != False:
                             if bands_dict[band]['hdr_blueband_kwrd'] not in list_hdr['BLUEBAND']:
-                                os.remove(os.path.join(gal_dir,'Raw',listfile))
                                 continue
 
                         # Skip dud PACS calibration(?) maps
@@ -279,7 +279,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                             os.remove(os.path.join(gal_dir,'Raw',listfile))
                             continue
 
-                        # Check that we havne't already grabbed a duplicate of this map; if not, move it ot band-specific directory
+                        # Check that we havne't already grabbed a duplicate of this map; if not, move it to band-specific directory
                         if 'FILENAME' in list_hdr.keys():
                             if list_hdr['FILENAME'] in prev_hdr_filenames:
                                 os.remove(os.path.join(gal_dir,'Raw',listfile))
@@ -701,4 +701,4 @@ def Handler(signum, frame):
 
 
 
-Run(210.8025, +54.34906, 1.0, name='M101', out_dir='/astro/dust_kg/cclark/Local_Dust/Raw_Obs/M101/Herschel/', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
+Run(210.8025, +54.34906, 1.0, name='M101', out_dir='/Users/cclark/Data/Blarg', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
