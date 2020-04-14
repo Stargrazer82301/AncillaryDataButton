@@ -226,15 +226,17 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
                 pdb.set_trace()
             query_success = True
         except:
+            pdb.set_trace()
             query_success = False
 
     # Retrieve and verify data
     if query_success:
         print('Retrieving identified Planck '+bands_dict[band]['wavelength']+'um data for '+name)
         Planck_wget(str(query_url[0]), query_filename)
+        pdb.set_trace()
         try:
             astropy.io.fits.info(query_filename)
-        except Exception as exception:
+        except Exception:
             query_success = False
 
     # If no data available, generate null file and report failure
@@ -346,14 +348,14 @@ def Planck_wget(tile_url, tile_filename):
     success = False
     fail_count = 0
     while success==False:
-        if fail_count == 10:
+        if fail_count == 4:
             return
         try:
             wget.download(tile_url, out=tile_filename)
             success = True
         except:
             fail_count += 1
-            time.sleep(10.0)
+            time.sleep(5.0)
             success = False
 
 
