@@ -25,7 +25,7 @@ plt.ioff()
 
 
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False,
+def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False, gzip=True,
         montage_path=None, swarp_path=None):
     """
     Function to generate standardised cutouts of Herschel observations.
@@ -474,7 +474,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
             # Compress finalised FITS file
             os.chdir(gal_dir)
-            os.system('gzip '+os.path.join(gal_dir,name+'_Herschel_'+band+'.fits'))
+            if gzip:
+                os.system('gzip '+os.path.join(gal_dir,name+'_Herschel_'+band+'.fits'))
             print('Completed processing '+name+'_Herschel_'+band+' image map')
 
 
@@ -513,7 +514,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
             # Compress finalised exposure time map
             os.chdir(out_dir)
-            os.system('gzip '+os.path.join(gal_dir,name+'_Herschel_'+band+'_Error.fits'))
+            if gzip:
+                os.system('gzip '+os.path.join(gal_dir,name+'_Herschel_'+band+'_Error.fits'))
             print('Completed processing '+name+'_Herschel_'+band+' uncertainty map')
 
 
@@ -521,8 +523,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         pool = mp.Pool(processes=9)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            #pool.apply_async( Herschel_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,) )
-            Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
+            #pool.apply_async( Herschel_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails, gzip=gzip,) )
+            Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails, gzip=gzip)
         pool.close()
         pool.join()
 
@@ -550,11 +552,15 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
 
 
 # Define function to finalise Herschel image of a given source in a given band
-def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails):
+def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails, gzip=True):
     band = band_dict['band']
     wavelength = band_dict['wavelength']
     print('Generating final standardised map of Herschel '+band+' data for '+name)
     gal_dir = os.path.join(temp_dir,str(name))+'/'
+    if gzip:
+        gzip_suffix = '.gz'
+    else:
+        gzip_suffix = ''
 
     # If null file exists for this target in this band, copy it to final output directory
     if os.path.exists(os.path.join(temp_dir,'.'+name+'_Herschel_'+band+'.null')):
@@ -563,13 +569,13 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
     else:
 
         # Read in image map
-        in_img, in_hdr = astropy.io.fits.getdata(os.path.join(gal_dir,name+'_Herschel_'+band+'.fits.gz'), header=True)
+        in_img, in_hdr = astropy.io.fits.getdata(os.path.join(gal_dir,name+'_Herschel_'+band+'.fits'+gzip_suffix), header=True)
         in_wcs = astropy.wcs.WCS(in_hdr)
         in_pix_width_arcsec = 3600.0 * astropy.wcs.utils.proj_plane_pixel_scales(in_wcs).mean()
         out_img = in_img.copy()
 
         # Read in error map
-        in_unc = astropy.io.fits.getdata(gal_dir+name+'_Herschel_'+band+'_Error.fits.gz')
+        in_unc = astropy.io.fits.getdata(gal_dir+name+'_Herschel_'+band+'_Error.fits'+gzip_suffix)
         out_unc = in_unc.copy()
 
         # Give default pixel units
@@ -633,12 +639,12 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
 
         # Create hdulist and save to file
         out_hdulist = astropy.io.fits.HDUList([image_out_hdu, error_out_hdu])
-        out_hdulist.writeto(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'), overwrite=True)
+        out_hdulist.writeto(os.path.join(out_dir,name+'_Herschel_'+band+'.fits'+gzip_suffix), overwrite=True)
 
         # Make thumbnail image of cutout
         if thumbnails:
             try:
-                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits.gz'))
+                thumb_out = aplpy.FITSFigure(os.path.join(out_dir,name+'_Herschel_'+band+'.fits'+gzip_suffix))
                 thumb_out.show_colorscale(cmap='gist_heat', stretch='arcsinh')
                 thumb_out.axis_labels.hide()
                 thumb_out.tick_labels.hide()
