@@ -12,12 +12,12 @@ import copy
 import shutil
 import time
 import datetime
+import urllib
 import subprocess
 import astropy.io.fits
 import astropy.wcs
 import astropy.io.votable
 import aplpy
-import wget
 import ChrisFuncs
 import ChrisFuncs.Coadd
 plt.ioff()
@@ -217,7 +217,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 query_filename = os.path.join(temp_dir,name,str(name)+'.vot')
                 if os.path.exists(query_filename):
                     os.remove(query_filename)
-                wget.download(query_url, out=query_filename)
+                urllib.request.urlretrieve(query_url, query_filename)
                 query_success = True
             except:
                 print('HSA query failed; reattempting')
@@ -252,8 +252,8 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         for j in range(0, len(hsa_urls)):
             data_url = hsa_urls[j]
             data_filename = os.path.join(gal_dir,'Raw',name+'_'+str(j)+'_HSA.fits')
-            dl_pool.apply_async( Herschel_wget, args=(data_url, data_filename,) )
-            #Herschel_wget(data_url, data_filename)
+            #dl_pool.apply_async( Herschel_Download, args=(data_url, data_filename,) )
+            Herschel_Download(data_url, data_filename)
         dl_pool.close()
         dl_pool.join()
 
@@ -261,11 +261,17 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         for band in bands_dict.keys():
             prev_hdr_filenames = []
             for listfile in os.listdir(os.path.join(gal_dir,'Raw')):
+                if '.tmp' in listfile:
+                    os.remove(os.path.join(gal_dir,'Raw',listfile))
+                    continue
                 if '.fits' not in listfile:
                     continue
 
                 # Determine what band this is
-                list_hdr = astropy.io.fits.getheader(os.path.join(gal_dir,'Raw',listfile), ext=0)
+                try:
+                    list_hdr = astropy.io.fits.getheader(os.path.join(gal_dir,'Raw',listfile), ext=0)
+                except:
+                    pdb.set_trace()
                 if list_hdr['INSTRUME'] == bands_dict[band]['instrument']:
                     if list_hdr[bands_dict[band]['hdr_inst_card_kwrd']] == bands_dict[band]['hdr_inst_card_entry']:
 
@@ -299,6 +305,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # Loop over each band's files, to save image map to separate FITS files
         for band in bands_dict.keys():
             for listfile in os.listdir(os.path.join(gal_dir,'Raw',band)):
+                print('Extracting components from '+band+' um map '+listfile)
+                if '.tmp' in listfile:
+                    pdb.set_trace()
                 img_map, img_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='image')
 
                 # Record which image pixels are zeros, and convert to NaNs
@@ -379,6 +388,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 for listfile in os.listdir(os.path.join(gal_dir,'Raw',band,'Img_Maps')):
                     if '.fits' in listfile:
                         shutil.move(os.path.join(gal_dir,'Raw',band,'Img_Maps',listfile) , os.path.join(gal_dir,'Raw',band,'SWarp_Temp'))
+                mBgExec_uberfail = False
             if mosaic_count>1:
 
                 # Use Montage wrapper to determine appropriate corrections for background matching
@@ -662,21 +672,59 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
 
 
 
-# Define function to wget and extact Herschel files
-def Herschel_wget(data_url, data_filename):
+# Define function to download and extact Herschel files
+def Herschel_Download(data_url, data_filename):
     print('Acquiring '+data_url)
+
+    # Remove any pre-existing file
     if os.path.exists(data_filename):
         os.remove(data_filename)
+
+    # Start main while loop for download attempt
     success = False
+    fail_count = 0
     while success == False:
         try:
-            wget.download(data_url, out=data_filename)
-            os.system('gzip -d '+data_filename)
+            urllib.request.urlretrieve(data_url, data_filename)
+
+            # Unzip if need be
+            if '.gz' in data_filename:
+                os.system('gzip -d '+data_filename)
+
+            # If file somehow didn't get downloaded and doesn't exist, fail
+            if not os.path.exists(data_filename):
+                success = False
+                raise Exception()
+
+            # If file is teeny tiny due to not properly being downloaded, fail
+            if os.stat(data_filename).st_size <= 500:
+                success = False
+                raise Exception()
+
+            # If file contains no actual FITS data, fail
+            if min(astropy.io.fits.getdata(data_filename).shape) <=0:
+                success = False
+                raise Exception()
+
+            # If no fail conditions encountered, we're done; otherwise, catch failures for re-attempt
             print('Successful acquisition of '+data_url)
             success = True
         except:
             print('Failure! Retrying acquistion of '+data_url)
-            time.sleep(0.1)
+
+            # Switch to older http protocol version to avoid certain possible chunking errors
+            if fail_count >= 2:
+                import http.client as http
+                http.HTTPConnection._http_vsn = 10
+                http.HTTPConnection._http_vsn_str = 'HTTP/1.0'
+
+            # If we failed a whole bunch o' times, go to debug
+            if fail_count >= 10:
+                pdb.set_trace()
+
+            # Move along, move along
+            time.sleep(5)
+            fail_count += 1
             success = False
 
 
@@ -707,4 +755,4 @@ def Handler(signum, frame):
 
 
 
-Run(210.8025, +54.34906, 1.0, name='M101', out_dir='/Users/cclark/Data/Blarg', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
+#Run(021.7420609308274, -32.543177147963, 0.5, name='R_Scl', out_dir='/Users/cclark/Data/Blarg', montage_path='/Users/cclark/Soft/Montage/bin/', swarp_path='/usr/local/bin/')
