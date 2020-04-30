@@ -308,7 +308,13 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('Extracting components from '+band+' um map '+listfile)
                 if '.tmp' in listfile:
                     pdb.set_trace()
-                img_map, img_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='image')
+
+                # Check map has error and coverage data; open if so, skip forward if not
+                with astropy.io.fits.open(os.path.join(gal_dir,'Raw',band,listfile)) as listfile_hdulist:
+                    if len(listfile_hdulist) < 4:
+                        print('Some FITS extensions missing from '+band+' um map '+listfile+'; skipping')
+                        continue
+                img_map, img_header = astropy.io.fits.getdata(os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='image')
 
                 # Record which image pixels are zeros, and convert to NaNs
                 where_zero = np.where(img_map==0)
@@ -316,10 +322,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Img.fits')), img_map, header=img_header)
 
                 # Now save coverage and error maps to separate files, with zeros similarly converted to NaNs
-                cov_map, cov_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='coverage')
+                cov_map, cov_header = astropy.io.fits.getdata(os.path.join(gal_dir,'Raw',band,listfile), header=True, extname='coverage')
                 cov_map[where_zero] = np.NaN
                 astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Cov.fits')), cov_map, header=cov_header)
-                err_map, err_header = astropy.io.fits.getdata( os.path.join(gal_dir,'Raw',band,listfile), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
+                err_map, err_header = astropy.io.fits.getdata(os.path.join(gal_dir,'Raw',band,listfile), header=True, extname=bands_dict[band]['hdr_err_ext_name'])
                 err_map[where_zero] = np.NaN
                 astropy.io.fits.writeto(os.path.join(gal_dir,'Raw',band,listfile.replace('.fits','_Error.fits')), err_map, header=err_header)
 
