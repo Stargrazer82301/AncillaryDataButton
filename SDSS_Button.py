@@ -504,4 +504,4 @@ def SDSS_URL(run, camcol, field, band):
 
 
 
-Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
+#Run(023.462100, 30.659942, 2.0, name='M33', out_dir='/astro/dust_kg/cclark/Lea/')
