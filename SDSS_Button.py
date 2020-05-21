@@ -167,11 +167,11 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         if not replace:
             bands_done = 0
             for band in bands_dict.keys():
-                if os.path.exists(os.path.join(out_dir,name+'_SDSS_'+bands_dict[band]['wavelength']+'.fits')):
+                if os.path.exists(os.path.join(out_dir,name+'_SDSS_'+bands_dict[band]['band_name']+'.fits')):
                     bands_done += 1
 
                 # Also check for null files, indicated data not available for a givne band
-                elif os.path.exists(os.path.join(out_dir,'.'+name+'_SDSS_'+bands_dict[band]['wavelength']+'.null')):
+                elif os.path.exists(os.path.join(out_dir,'.'+name+'_SDSS_'+bands_dict[band]['band_name']+'.null')):
                     bands_done += 1
 
             # If this source has already been processed in all bands, skip it
@@ -179,6 +179,7 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('SDSS data for '+name+ ' already processed (if available); continuing to next target')
                 time_list.append(time.time())
                 continue
+
         print('Processing SDSS data for target '+name)
 
         # Create field processing dirctories (deleting any prior), and set appropriate Python (ie, SWarp) working directory
@@ -451,7 +452,7 @@ def SDSS_wget(frame_url, path):
     print('Acquiring '+fitsname)
     if os.path.exists(path+fitsname):
         os.remove(path+fitsname)
-    success = False
+#    success = False
 #    while success==False:
 #        try:
     wget.download(frame_url, out=path+fitsname)
@@ -460,7 +461,7 @@ def SDSS_wget(frame_url, path):
     if float(filesize)<1048576.0:
         raise NameError('File not large enough')
     print('Successful acquisition of '+fitsname)
-    success = True
+#    success = True
 #        except:
 #            print('Failure! Retrying acquistion of '+fitsname)
 #            time.sleep(0.1)
