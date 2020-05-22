@@ -6,11 +6,11 @@ import astropy.io.votable
 import astropy.coordinates
 from astroquery.skyview import SkyView
 import aplpy
+import urllib
 import gc
 import re
 import shutil
 import copy
-import wget
 import pdb
 import time
 import datetime
@@ -233,7 +233,6 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
     if query_success:
         print('Retrieving identified Planck '+bands_dict[band]['wavelength']+'um data for '+name)
         Planck_wget(str(query_url[0]), query_filename)
-        pdb.set_trace()
         try:
             astropy.io.fits.info(query_filename)
         except Exception:
@@ -351,7 +350,7 @@ def Planck_wget(tile_url, tile_filename):
         if fail_count == 4:
             return
         try:
-            wget.download(tile_url, out=tile_filename)
+            urllib.request.urlretrieve(tile_url, tile_filename)
             success = True
         except:
             fail_count += 1

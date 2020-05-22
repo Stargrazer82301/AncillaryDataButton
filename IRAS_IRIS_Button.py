@@ -10,11 +10,11 @@ import reproject
 import warnings
 warnings.filterwarnings("ignore")
 import aplpy
+import urllib
 import gc
 import re
 import copy
 import shutil
-import wget
 import time
 import datetime
 import joblib
@@ -256,8 +256,8 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
     if len(wget_list) > 0:
         print('Downloading raw '+bands_dict[band]['wavelength']+'um IRAS-IRIS plates (note that this will entail downloding up to ~4GB of data)')
         if mp.current_process().name == 'MainProcess':
-            joblib.Parallel( n_jobs=mp.cpu_count()-1 )\
-                           ( joblib.delayed( wget.download )\
+            joblib.Parallel( n_jobs=mp.cpu_count()-2 )\
+                           ( joblib.delayed( IRIS_wget )\
                            ( wget_list[w][0], wget_list[w][1] )\
                            for w in range(len(wget_list)) )
         else:
@@ -435,7 +435,7 @@ def IRIS_wget(tile_url, tile_filename):
     success = False
     while success==False:
         try:
-            wget.download(tile_url, out=tile_filename)
+            urllib.request.urlretrieve(tile_url, tile_filename)
             success = True
         except:
             time.sleep(0.1)
