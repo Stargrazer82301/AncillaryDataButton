@@ -34,7 +34,8 @@ def Run(ra,
         flux=True,
         thumbnails=False,
         montage_path=None,
-        parallel=True):
+        parallel=True,
+        verbose=True):
     """
     Function to generate standardised cutouts of IRAS-IRIS observations from the calibrated plates hosted on IRSA.
 
@@ -74,7 +75,16 @@ def Run(ra,
                 This function requires Montage to be installed. If your Montage commands are found in a location that
                 the montage_wapper package will not find by default, provide a string here that gives the path to the
                 directory the commands are found in.
+        parallel
+                If True, all 4 bands willb eprocessed in parallel. If False, they will be processed serially.
+        verbose
+                If True, progress updates will be printed to screen. If False, they will not be.
     """
+
+    # If not verbose, suppress all output
+    if not verbose:
+        stdout_ref = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
 
     # If Montage commands directory provided, append it to path
     try:
@@ -237,6 +247,8 @@ def Run(ra,
 
     # Report completion
     print('Total time elapsed: '+str((time.time()-time_list[0])/3600.0)+' hours')
+    if not verbose:
+        sys.stdout = stdout_ref
 
 
 
