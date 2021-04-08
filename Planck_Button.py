@@ -217,6 +217,9 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
     query_success = None
     pix_size = bands_dict[band]['pix_size']
 
+    # Add tiny permutation to width to stop SkyView flailing over repeat queries
+    width *= 1.0 + (0.01 * (np.random.rand() - 0.5))
+
     # Perform query
     while query_success==None:
         try:
@@ -226,7 +229,6 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
                 pdb.set_trace()
             query_success = True
         except:
-            pdb.set_trace()
             query_success = False
 
     # Retrieve and verify data
@@ -237,11 +239,12 @@ def Planck_SkyView(name, ra, dec, width, band, bands_dict, temp_dir):
             astropy.io.fits.info(query_filename)
         except Exception:
             query_success = False
+            pdb.set_trace()
 
     # If no data available, generate null file and report failure
     if not query_success:
         os.system('touch '+os.path.join(temp_dir,'.'+name+'_Planck_'+bands_dict[band]['wavelength']+'.null'))
-        print('No Planck '+band+' data for '+name)
+        print('No '+band+' data for '+name)
 
 
 
