@@ -280,8 +280,9 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
 
     # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
     mImgtbl_tablepath = os.path.join(raw_dir,'IRIS_'+band+'_Metadata_Table.tbl')
-    if not os.path.exists(mImgtbl_tablepath):
-        montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
+    if os.path.exists(mImgtbl_tablepath):
+        os.remove(mImgtbl_tablepath)
+    montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
 
     # Now that we know we have data, set up processing for this source in particular
     print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-IRIS plates with '+name)
