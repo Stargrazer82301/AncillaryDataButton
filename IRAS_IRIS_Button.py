@@ -196,25 +196,28 @@ def Run(ra,
         print('Commencing processing IRAS-IRIS data for target '+name)
 
         # Retrieve IRAS-IRIS data in each band from IRSA (this can be run in parallel, but that actually makes the bulk download slower)
-        pool_query = mp.Pool(processes=4)
-        for band in bands_dict.keys():
-            if parallel:
+        if parallel:
+            pool_query = mp.Pool(processes=4)
+            for band in bands_dict.keys():
                 pool_query.apply_async(IRIS_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
-            else:
+            pool_query.close()
+            pool_query.join()
+        else:
+            for band in bands_dict.keys():
                 IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
-        pool_query.close()
-        pool_query.join()
 
         # In parallel, generate final standardised maps for each band
-        pool_gen = mp.Pool(processes=4)
-        for key in bands_dict.keys():
-            band_dict = bands_dict[key]
-            if parallel:
+        if parallel:
+            pool_gen = mp.Pool(processes=4)
+            for key in bands_dict.keys():
+                band_dict = bands_dict[key]
                 pool_gen.apply_async(IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
-            else:
+            pool_gen.close()
+            pool_gen.join()
+        else:
+            for key in bands_dict.keys():
+                band_dict = bands_dict[key]
                 IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
-        pool_gen.close()
-        pool_gen.join()
 
         # Clean memory, and return timings (if more than one target being processed)
         print('Completed processing IRAS-IRIS data for target '+name)
