@@ -54,12 +54,12 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 A string giving the path to the directory where the output FITS files will be placed. If not provided,
                 files will simply be written to the current working directory.
         temp_dir: str, optional
-                A string giving the path to be used as a temporary working directory by galex_Button. If not provided,
+                A string giving the path to be used as a temporary working directory by GALEX_Button. If not provided,
                 a temporary directory will be created inside the output directory.
         replace: bool, optional
-                If False, galex_Button will search the output directory for any pre-existing output FITS files from
+                If False, GALEX_Button will search the output directory for any pre-existing output FITS files from
                 previous runs of the function, and will not bother repeat creating these maps (making it easy to resume
-                processing a large number of targets from an interruption. If True, galex_Button will produce maps for
+                processing a large number of targets from an interruption. If True, GALEX_Button will produce maps for
                 all input targets, regardless of whether maps for these targets already exist in the output directory.
         flux: bool, optional
                 If True, output maps will be in flux density units of Jy/pix. If false, output maps will be in surface
@@ -319,8 +319,9 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
                 print('Cleaning '+str(len(raw_files))+' raw maps for '+id_string)
                 pool = mp.Pool(processes=int(0.75*mp.cpu_count()))
                 for raw_file in raw_files:
-                    pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict,))
-                    #GALEX_Clean(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict)
+                    #pool.apply_async(GALEX_Clean, args=(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict,))
+                    GALEX_Clean(raw_file, os.path.join(gal_dir,band+'_Raw'), os.path.join(gal_dir,band+'_Reproject_Temp'), os.path.join(gal_dir,band+'_Convolve_Temp'), band_dict)
+                    print('##### CLEANING SINGLE-THREADED FOR TESTING #####')
                 pool.close()
                 pool.join()
 
