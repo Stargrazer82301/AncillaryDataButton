@@ -24,7 +24,17 @@ from ChrisFuncs.Fits import FitsHeader
 
 
 # Define main function
-def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, flux=True, thumbnails=False, montage_path=None):
+def Run(ra,
+        dec,
+        width,
+        name=None,
+        out_dir=None,
+        temp_dir=None,
+        replace=False,
+        flux=True,
+        thumbnails=False,
+        montage_path=None,
+        parallel=True):
     """
     Function to generate standardised cutouts of IRAS-IRIS observations from the calibrated plates hosted on IRSA.
 
@@ -188,8 +198,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         # Retrieve IRAS-IRIS data in each band from IRSA (this can be run in parallel, but that actually makes the bulk download slower)
         pool_query = mp.Pool(processes=4)
         for band in bands_dict.keys():
-            #pool_query.apply_async(IRIS_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
-            IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
+            if parallel:
+                pool_query.apply_async(IRIS_Query, args=(name, ra, dec, width, band, bands_dict, temp_dir, montage_path,))
+            else:
+                IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=montage_path)
         pool_query.close()
         pool_query.join()
 
@@ -197,8 +209,10 @@ def Run(ra, dec, width, name=None, out_dir=None, temp_dir=None, replace=False, f
         pool_gen = mp.Pool(processes=4)
         for key in bands_dict.keys():
             band_dict = bands_dict[key]
-            #pool_gen.apply_async(IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
-            IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
+            if parallel:
+                pool_gen.apply_async(IRIS_Generator, args=(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails,))
+            else:
+                IRIS_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbnails)
         pool_gen.close()
         pool_gen.join()
 
