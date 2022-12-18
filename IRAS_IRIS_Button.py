@@ -299,17 +299,18 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         os.system('touch '+iris_fields_check_path)
 
     # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
+    print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-IRIS plates with '+name)
     mImgtbl_tablepath = os.path.join(raw_dir,'IRIS_'+band+'_Metadata_Table.tbl')
-    if os.path.exists(mImgtbl_tablepath):
-        os.remove(mImgtbl_tablepath)
-    montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
+    """if os.path.exists(mImgtbl_tablepath):
+        os.remove(mImgtbl_tablepath)"""
+    if not os.path.exists(mImgtbl_tablepath):
+        montage_wrapper.mImgtbl(raw_dir, mImgtbl_tablepath, corners=True)
 
     # Now that we know we have data, set up processing for this source in particular
-    print('Computing overlap of '+bands_dict[band]['wavelength']+'um IRAS-IRIS plates with '+name)
     ra, dec, width = float(ra), float(dec), float(width)
     pix_size = bands_dict[band]['pix_size']
 
-    # Find which plates have coverage over our target region
+    # Make coverage table to find which plates have coverage over our target region
     mCoverageCheck_tablepath = os.path.join(raw_dir,u'IRIS_'+band+'_Coverage_Table.tbl')
     if os.path.exists(mCoverageCheck_tablepath):
         os.remove(mCoverageCheck_tablepath)
