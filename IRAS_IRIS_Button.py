@@ -350,7 +350,7 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         raw_hdr.remove('CTYPE3')
         raw_hdr.remove('CDELT3')
         raw_hdu = astropy.io.fits.PrimaryHDU(data=raw_img, header=raw_hdr)
-        reproj_img = reproject.reproject_exact(raw_hdu, reproj_hdr, parallel=False)[0]
+        reproj_img = reproject.reproject_interp(raw_hdu, reproj_hdr, return_footprint=False)
         astropy.io.fits.writeto(reproj_path, data=reproj_img, header=reproj_hdr, overwrite=True)
         del(raw_hdu)
         del(raw_img)
