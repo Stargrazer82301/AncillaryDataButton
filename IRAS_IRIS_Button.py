@@ -275,13 +275,17 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
     if not os.path.exists(raw_dir):
         os.makedirs(raw_dir)
 
-    # Look to see if all IRIS fields for this band are already present in the temporary directory; if not, wget them
+    # Look to see if all IRIS fields for this band are already present in the temporary directory
     wget_list = []
-    for iris_field in np.random.permutation(iris_fields):
-        iris_ref_file = iris_field.replace('X',bands_dict[band]['band_num'])+'.fits'
-        iris_ref_path = os.path.join(raw_dir,iris_ref_file)
-        if not os.path.exists(iris_ref_path):
-            wget_list.append([iris_url+iris_ref_file,iris_ref_path])
+    iris_fields_check_path = os.path.join(raw_dir,'.Check.temp')
+    if not os.path.exists(iris_fields_check_path):
+        for iris_field in np.random.permutation(iris_fields):
+            iris_ref_file = iris_field.replace('X',bands_dict[band]['band_num'])+'.fits'
+            iris_ref_path = os.path.join(raw_dir,iris_ref_file)
+            if not os.path.exists(iris_ref_path):
+                wget_list.append([iris_url+iris_ref_file,iris_ref_path])
+
+    # If all IRIS fields are not available, wget them, and make a little check file to avoid running this test again needlessly
     if len(wget_list) > 0:
         print('Downloading raw '+bands_dict[band]['wavelength']+'um IRAS-IRIS plates (note that this will entail downloding up to ~4GB of data)')
         if mp.current_process().name == 'MainProcess':
@@ -292,6 +296,7 @@ def IRIS_Query(name, ra, dec, width, band, bands_dict, temp_dir, montage_path=No
         else:
             for w in range(len(wget_list)):
                 os.system('curl '+wget_list[w][0]+' -o '+'"'+wget_list[w][1]+'"')
+        os.system('touch '+iris_fields_check_path)
 
     # If image metadata table doesn't yet exist for this band, run mImgtbl over raw data to generate it
     mImgtbl_tablepath = os.path.join(raw_dir,'IRIS_'+band+'_Metadata_Table.tbl')
