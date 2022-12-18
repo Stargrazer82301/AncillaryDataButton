@@ -628,10 +628,9 @@ def Herschel_Generator(name, ra, dec, temp_dir, out_dir, band_dict, flux, thumbn
         out_hdr.set('FILTER', band_dict['filter'], 'Filter used for this observation')
         out_hdr.set('WVLNGTH', wavelength, 'Effective wavelength of observation')
         out_hdr.set('MAPDATE', date, 'Date this cutout was made from the existing reduced data')
-        out_hdr.set('SOFTWARE', 'The Ancillary Data Button',
-                    'This cutout was produced using the Ancillary Data Button, written by Chris Clark, available from' \
-                    + ' https://github.com/Stargrazer82301/AncillaryDataButton/, following procedures laid out in' \
-                    + ' Clark et al (2018, A&A 609 A37) and Saintonge et al (2018).')
+        out_hdr['SOFTWARE'] = 'This cutout was produced using the Ancillary Data Button, written by Chris Clark, available from' \
+                           + ' https://github.com/Stargrazer82301/AncillaryDataButton/, following procedures laid out in' \
+                           + ' Clark et al (2018, A&A 609 A37) and Saintonge et al (2018).'
 
         # Construct WCS system, and append to header
         cutout_wcs = astropy.wcs.WCS(naxis=2)
